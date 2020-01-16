@@ -3,10 +3,81 @@ CamRNG
 
 An Android library project to enable true and quantum random number generation using device camera.
 
+Usage Example
+-------------
+
+```kotlin
+class MyActivity : AppCompatActivity() {
+
+    companion object {
+        private const val REQUEST_PERMISSIONS = 1
+    }
+
+    private val compositeDisposable = CompositeDisposable()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            setupRngAndViews()
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_PERMISSIONS)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        if (requestCode == REQUEST_PERMISSIONS) {
+            if (grantResults.size == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                setupRngAndViews()
+            } else {
+                finish()
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
+    }
+
+    private fun setupRngAndViews() {
+        val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 200).apply {
+            channel = NoiseBasedCamRng.Channel.GREEN
+        }
+
+        diceRollButton.setOnClickListener {
+            compositeDisposable.add(
+                camRng.getInt(bound = 6)
+                    .map {
+                        it + 1
+                    }
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe { diceRollOutcome ->
+                        diceRollOutcomeTextView.text = diceRollOutcome.toString()
+                    }
+            )
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        NoiseBasedCamRng.reset()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        compositeDisposable.dispose()
+    }
+}
+```
+
 License
 -------
 
-    Copyright (c) 2019 Andika Wasisto
+    Copyright (c) 2020 Andika Wasisto
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
