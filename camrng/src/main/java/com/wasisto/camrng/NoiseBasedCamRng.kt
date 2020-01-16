@@ -255,15 +255,6 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
             usedPixels.clear()
             movingAverageData.clear()
         }
-
-        /**
-         * Returns true if the RNG is warmed up.
-         *
-         * @return true if the RNG is warmed up.
-         */
-        fun isWarmedUp(): Boolean {
-            return movingAverageData.size >= MOVING_AVERAGE_WINDOW_SIZE - 1
-        }
     }
 
     var channel = Channel.GREEN
@@ -272,6 +263,11 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
         MulticastProcessor.create<Boolean>().apply {
             start()
         }
+
+    /**
+     * True if the RNG is warmed up.
+     */
+    var warmedUp = false
 
     private fun onDatumAdded() {
         for (i in pixelsToUse.indices) {
@@ -305,6 +301,10 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                 if (booleanValue != null) {
                     val unbiasedBooleanValue = booleanValue xor (csprng.next(1) == 1)
                     booleanProcessor.offer(unbiasedBooleanValue)
+                }
+
+                if (pixelValues.size >= MOVING_AVERAGE_WINDOW_SIZE) {
+                    warmedUp = true
                 }
             }
         }
