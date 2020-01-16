@@ -40,8 +40,8 @@ ext {
     siteUrl = 'https://github.com/awasisto/camrng'
     gitUrl = 'https://github.com/awasisto/camrng.git'
 
-    libraryVersionCode = 1
-    libraryVersionName = '0.0.1'
+    libraryVersionCode = 2
+    libraryVersionName = '0.0.2'
 
     developerId = 'awasisto'
     developerName = 'Andika Wasisto'
@@ -59,8 +59,8 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 29
-        versionCode 1
-        versionName '0.0.1'
+        versionCode libraryVersionCode
+        versionName libraryVersionName
     }
 }
 
