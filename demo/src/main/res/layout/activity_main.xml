@@ -23,13 +23,11 @@
 
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_margin="16dp"
     android:orientation="vertical"
-    android:keepScreenOn="true"
-    tools:ignore="HardcodedText">
+    android:keepScreenOn="true">
 
     <TableLayout
         android:layout_width="match_parent"
@@ -40,7 +38,7 @@
             <TextView
                 android:layout_marginBottom="8dp"
                 android:layout_span="2"
-                android:text="Random data stream"
+                android:text="@string/random_data_stream"
                 android:fontFamily="sans-serif-medium"
                 android:textColor="?android:textColorPrimary"
                 android:textSize="16sp"/>
@@ -49,78 +47,78 @@
         <TableRow>
             <TextView
                 android:layout_marginEnd="16dp"
-                android:text="Boolean"/>
+                android:text="@string/boolean_label"/>
 
             <TextView
                 android:id="@+id/booleanTextView"
                 android:textColor="?android:textColorPrimary"
-                android:text="generating..."/>
+                android:text="@string/empty"/>
         </TableRow>
 
         <TableRow>
             <TextView
                 android:layout_marginEnd="16dp"
-                android:text="Byte"/>
+                android:text="@string/byte_label"/>
 
             <TextView
                 android:id="@+id/byteTextView"
                 android:textColor="?android:textColorPrimary"
-                android:text="generating..."/>
+                android:text="@string/empty"/>
         </TableRow>
 
         <TableRow>
             <TextView
                 android:layout_marginEnd="16dp"
-                android:text="Short"/>
+                android:text="@string/short_label"/>
 
             <TextView
                 android:id="@+id/shortTextView"
                 android:textColor="?android:textColorPrimary"
-                android:text="generating..."/>
+                android:text="@string/empty"/>
         </TableRow>
 
         <TableRow>
             <TextView
                 android:layout_marginEnd="16dp"
-                android:text="Int"/>
+                android:text="@string/int_label"/>
 
             <TextView
                 android:id="@+id/intTextView"
                 android:textColor="?android:textColorPrimary"
-                android:text="generating..."/>
+                android:text="@string/empty"/>
         </TableRow>
 
         <TableRow>
             <TextView
                 android:layout_marginEnd="16dp"
-                android:text="Long"/>
+                android:text="@string/long_label"/>
 
             <TextView
                 android:id="@+id/longTextView"
                 android:textColor="?android:textColorPrimary"
-                android:text="generating..."/>
+                android:text="@string/empty"/>
         </TableRow>
 
         <TableRow>
             <TextView
                 android:layout_marginEnd="16dp"
-                android:text="Float"/>
+                android:text="@string/float_label"/>
 
             <TextView
                 android:id="@+id/floatTextView"
                 android:textColor="?android:textColorPrimary"
-                android:text="generating..."/>
+                android:text="@string/empty"/>
         </TableRow>
 
         <TableRow>
             <TextView
                 android:layout_marginEnd="16dp"
-                android:text="Double"/>
+                android:text="@string/double_label"/>
 
             <TextView
                 android:id="@+id/doubleTextView"
                 android:textColor="?android:textColorPrimary"
-                android:text="generating..."/>
+                android:text="@string/empty"/>
         </TableRow>
 
         <TableRow>
@@ -128,7 +126,7 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="8dp"
                 android:layout_span="2"
-                android:text="Dice roll"
+                android:text="@string/dice_roll"
                 android:fontFamily="sans-serif-medium"
                 android:textColor="?android:textColorPrimary"
                 android:textSize="16sp"/>
@@ -137,12 +135,12 @@
         <TableRow>
             <TextView
                 android:layout_marginEnd="16dp"
-                android:text="Outcome"/>
+                android:text="@string/outcome"/>
 
             <TextView
                 android:id="@+id/diceRollOutcomeTextView"
                 android:textColor="?android:textColorPrimary"
-                android:text="-"/>
+                android:text="@string/empty"/>
         </TableRow>
     </TableLayout>
 
@@ -152,6 +150,6 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="-3dp"
         android:layout_marginTop="8dp"
-        android:text="Roll"
+        android:text="@string/roll"
         style="@style/Widget.AppCompat.Button.Colored"/>
 </LinearLayout>
