@@ -127,8 +127,8 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
 
                                         movingAverageData += datum
 
-                                        instances.forEach { instance ->
-                                            instance.onDatumAdded()
+                                        for (i in instances.indices) {
+                                            instances[i].onDatumAdded()
                                         }
 
                                         if (movingAverageData.size >= MOVING_AVERAGE_WINDOW_SIZE) {
@@ -271,12 +271,10 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
 
     private fun onDatumAdded() {
         for (i in pixelsToUse.indices) {
-            val pixel = pixelsToUse[i]
-
             val pixelValues = mutableListOf<Int>()
 
-            movingAverageData.forEach { datum ->
-                datum[Pair(pixel.first, pixel.second)]?.let { pixelValue ->
+            for (j in movingAverageData.indices) {
+                movingAverageData[j][Pair(pixelsToUse[i].first, pixelsToUse[i].second)]?.let { pixelValue ->
                     pixelValues += when (channel) {
                         Channel.RED -> pixelValue shr 16 and 0xff
                         Channel.GREEN -> pixelValue shr 8 and 0xff
