@@ -145,7 +145,8 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                                     override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
                                         val hardwareLevel = cameraCharacteristics[CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL]
 
-                                        val templateType = if (hardwareLevel == 1 || hardwareLevel == 3) {
+                                        val templateType = if (hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL ||
+                                                               hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_3) {
                                             CameraDevice.TEMPLATE_MANUAL
                                         } else {
                                             CameraDevice.TEMPLATE_PREVIEW
