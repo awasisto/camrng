@@ -274,7 +274,9 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
         }
 
     private fun onDatumAdded() {
-        pixelsToUse.forEach { pixel ->
+        for (i in pixelsToUse.indices) {
+            val pixel = pixelsToUse[i]
+
             val pixelValues = mutableListOf<Int>()
 
             movingAverageData.forEach { datum ->
