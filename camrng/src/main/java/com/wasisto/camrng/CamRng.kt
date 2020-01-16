@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Andika Wasisto
+ * Copyright (c) 2020 Andika Wasisto
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,167 +22,232 @@
 
 package com.wasisto.camrng
 
-import android.os.Handler
-import android.os.Looper
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.Observer
-import java.io.Closeable
-import java.util.concurrent.CountDownLatch
+import io.reactivex.Flowable
+import io.reactivex.Single
+import io.reactivex.processors.MulticastProcessor
 
 /**
  * This class is the superclass for all camera-based RNGs.
  */
-abstract class CamRng: Closeable {
+abstract class CamRng {
 
-    private val mainHandler = Handler(Looper.getMainLooper())
+    protected abstract val booleanProcessor: MulticastProcessor<Boolean>
 
-    private val _liveByte by lazy { createLiveDataForType(Byte::class.java) }
+    private val _byteFlowable by lazy { createFlowableForType(Byte::class.java) }
 
-    private val _liveInt by lazy { createLiveDataForType(Int::class.java) }
+    private val _shortFlowable by lazy { createFlowableForType(Short::class.java) }
 
-    private val _liveLong by lazy { createLiveDataForType(Long::class.java) }
+    private val _intFlowable by lazy { createFlowableForType(Int::class.java) }
 
-    private val _liveFloat by lazy { createLiveDataForType(Float::class.java) }
+    private val _longFlowable by lazy { createFlowableForType(Long::class.java) }
 
-    private val _liveDouble by lazy { createLiveDataForType(Double::class.java) }
+    private val _floatFlowable by lazy { createFlowableForType(Float::class.java) }
+
+    private val _doubleFlowable by lazy { createFlowableForType(Double::class.java) }
 
     /**
-     * Returns a `LiveData` holding continuously updated random `Byte` value.
+     * Returns a `Flowable` that emits random `Boolean` values.
      *
-     * @return a `LiveData` holding continuously updated random `Byte` value
+     * @return a `Flowable` that emits random `Boolean` values
      */
-    abstract fun getLiveBoolean(): LiveData<Boolean>
+    fun getBooleans() = booleanProcessor as Flowable<Boolean>
 
     /**
-     * Returns a `LiveData` holding continuously updated random `Byte` value.
+     * Returns a `Flowable` that emits random `Byte` values.
      *
-     * @return a `LiveData` holding continuously updated random `Byte` value
+     * @return a `Flowable` that emits random `Byte` values
      */
-    fun getLiveByte() = _liveByte
+    fun getBytes() = _byteFlowable
 
     /**
-     * Returns a `LiveData` holding continuously updated random `Int` value.
+     * Returns a `Flowable` that emits random `Short` values.
      *
-     * @return a `LiveData` holding continuously updated random `Int` value
+     * @return a `Flowable` that emits random `Short` values
      */
-    fun getLiveInt() = _liveInt
+    fun getShorts() = _shortFlowable
 
     /**
-     * Returns a `LiveData` holding continuously updated random `Long` value.
+     * Returns a `Flowable` that emits random `Int` values.
      *
-     * @return a `LiveData` holding continuously updated random `Long` value
+     * @return a `Flowable` that emits random `Int` values
      */
-    fun getLiveLong() = _liveLong
+    fun getInts() = _intFlowable
 
     /**
-     * Returns a `LiveData` holding continuously updated random `Float` value.
+     * Returns a `Flowable` that emits random `Long` values.
      *
-     * @return a `LiveData` holding continuously updated random `Float` value
+     * @return a `Flowable` that emits random `Long` values
      */
-    fun getLiveFloat() = _liveFloat
+    fun getLongs() = _longFlowable
 
     /**
-     * Returns a `LiveData` holding continuously updated random `Double` value.
+     * Returns a `Flowable` that emits random `Float` values.
      *
-     * @return a `LiveData` holding continuously updated random `Double` value
+     * @return a `Flowable` that emits random `Float` values
      */
-    fun getLiveDouble() = _liveDouble
+    fun getFloats() = _floatFlowable
 
     /**
-     * Returns a random `Boolean` value.
+     * Returns a `Flowable` that emits random `Double` values.
      *
-     * @return a random `Boolean` value
+     * @return a `Flowable` that emits random `Double` values
      */
-    fun getBoolean() = getSingleData(getLiveBoolean())
+    fun getDoubles() = _doubleFlowable
 
     /**
-     * Returns a random `Byte` value.
+     * Returns a `Single` that emits a random `Boolean` value.
      *
-     * @return a random `Byte` value
+     * @return a `Single` that emits a random `Boolean` value
      */
-    fun getByte() = getSingleData(_liveByte)
+    fun getBoolean() = Single.fromCallable { getBooleans().blockingNext().iterator().next() }
 
     /**
-     * Returns a random `Int` value.
+     * Returns a `Single` that emits a random `Byte` value.
      *
-     * @return a random `Int` value
+     * @return a `Single` that emits a random `Byte` value
      */
-    fun getInt() = getSingleData(_liveInt)
+    fun getByte() = Single.fromCallable { getBytes().blockingNext().iterator().next() }
 
     /**
-     * Returns a random `Long` value.
+     * Returns a `Single` that emits a random `Short` value.
      *
-     * @return a random `Long` value
+     * @return a `Single` that emits a random `Short` value
      */
-    fun getLong() = getSingleData(_liveLong)
+    fun getShort() = Single.fromCallable { getShorts().blockingNext().iterator().next() }
 
     /**
-     * Returns a random `Float` value between 0.0 (inclusive) and 1.0 (exclusive).
+     * Returns a `Single` that emits a random `Int` value.
      *
-     * @return a random `Float` value
+     * @return a `Single` that emits a random `Int` value
      */
-    fun getFloat() = getSingleData(_liveFloat)
+    fun getInt() = Single.fromCallable { getInts().blockingNext().iterator().next() }
 
     /**
-     * Returns a random `Double` value between 0.0 (inclusive) and 1.0 (exclusive).
+     * Returns a `Single` that emits a random `Long` value.
      *
-     * @return a random `Double` value
+     * @return a `Single` that emits a random `Long` value
      */
-    fun getDouble() = getSingleData(_liveDouble)
+    fun getLong() = Single.fromCallable { getLongs().blockingNext().iterator().next() }
 
     /**
-     * Generates random bytes and places them into the specified `ByteArray`.
+     * Returns a `Single` that emits a random `Float` value between 0.0 (inclusive) and 1.0 (exclusive).
      *
-     * @param bytes the `ByteArray` to fill with random bytes
+     * @return a `Single` that emits a random `Float` value
      */
-    fun getBytes(bytes: ByteArray) {
-        // TODO find a proper way to await a LiveData
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            throw Exception("Cannot invoke this method on the main thread")
-        }
-
-        var i = 0
-        val latch = CountDownLatch(1)
-        mainHandler.post {
-            _liveByte.observeForever(object : Observer<Byte> {
-                override fun onChanged(b: Byte) {
-                    bytes[i++] = b
-                    if (i == bytes.size) {
-                        latch.countDown()
-                        _liveByte.removeObserver(this)
-                    }
-                }
-            })
-        }
-        latch.await()
-    }
+    fun getFloat() = Single.fromCallable { getFloats().blockingNext().iterator().next() }
 
     /**
-     * Returns a random `Int` value between 0 (inclusive) and the specified value (exclusive).
+     * Returns a `Single` that emits a random `Double` value between 0.0 (inclusive) and 1.0 (exclusive).
+     *
+     * @return a `Single` that emits a random `Double` value
+     */
+    fun getDouble() = Single.fromCallable { getDoubles().blockingNext().iterator().next() }
+
+    /**
+     * Returns a `Single` that emits a random `Int` value between 0 (inclusive) and the specified bound (exclusive).
      *
      * @param bound the upper bound (exclusive). Must be positive.
      *
-     * @return a random `Int` value between zero (inclusive) and [bound] (exclusive)
+     * @return a `Single` that emits a random `Int` value between 0 (inclusive) and the specified bound (exclusive)
      */
-    fun getInt(bound: Int): Int {
-        require(bound > 0)
-        if (bound and -bound == bound) {
-            return (bound * getInt().ushr(1).toLong() shr 31).toInt()
+    fun getInt(bound: Int): Single<Int> {
+        require(bound > 0) { "bound must be positive" }
+
+        return Single.fromCallable {
+            val intIterator = getInts().blockingNext().iterator()
+
+            if (bound and -bound == bound) {
+                return@fromCallable ((bound * intIterator.next().toLong()) shr 31).toInt()
+            }
+
+            var bits: Int
+            var x: Int
+            do {
+                bits = intIterator.next().ushr(1)
+                x = bits % bound
+            } while (bits - x + (bound - 1) < 0)
+            return@fromCallable x
         }
+    }
+
+    /**
+     * Returns a `Flowable` that emits random `Int` values between 0 (inclusive) and the specified bound (exclusive).
+     *
+     * @param bound the upper bound (exclusive). Must be positive.
+     *
+     * @return a `Flowable` that emits random `Int` values between 0 (inclusive) and the specified bound (exclusive)
+     */
+    fun getInts(bound: Int): Flowable<Int> {
+        require(bound > 0) { "bound must be positive" }
+
+        if (bound and -bound == bound) {
+            return getInts().map { ((bound * it.toLong()) shr 31).toInt() }
+        }
+
         var bits: Int
-        var x: Int
-        do {
-            bits = getInt().ushr(1)
-            x = bits % bound
-        } while (bits - x + (bound - 1) < 0)
-        return x
+        var x: Int? = null
+        return getInts()
+            .filter {
+                bits = it.ushr(1)
+                x = bits % bound
+                bits - x!! + (bound - 1) >= 0
+            }
+            .map {
+                return@map x
+            }
+    }
+
+    /**
+     * Returns a `Single` that emits a random `Long` value between 0 (inclusive) and the specified bound (exclusive).
+     *
+     * @param bound the upper bound (exclusive). Must be positive.
+     *
+     * @return a `Single` that emits a random `Long` value between 0 (inclusive) and the specified bound (exclusive)
+     */
+    fun getLong(bound: Long): Single<Long> {
+        require(bound > 0) { "bound must be positive" }
+
+        return Single.fromCallable {
+            val longIterator = getLongs().blockingNext().iterator()
+
+            var bits: Long
+            var x: Long
+            do {
+                bits = longIterator.next().ushr(1)
+                x = bits % bound
+            } while (bits - x + (bound - 1) < 0)
+            return@fromCallable x
+        }
+    }
+
+    /**
+     * Returns a `Flowable` that emits random `Long` values between 0 (inclusive) and the specified bound (exclusive).
+     *
+     * @param bound the upper bound (exclusive). Must be positive.
+     *
+     * @return a `Flowable` that emits random `Long` values between 0 (inclusive) and the specified bound (exclusive)
+     */
+    fun getLongs(bound: Long): Flowable<Long> {
+        require(bound > 0) { "bound must be positive" }
+
+        var bits: Long
+        var x: Long? = null
+        return getLongs()
+            .filter {
+                bits = it.ushr(1)
+                x = bits % bound
+                bits - x!! + (bound - 1) >= 0
+            }
+            .map {
+                return@map x
+            }
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T> createLiveDataForType(type: Class<T>): LiveData<T> {
-        val bits = when (type) {
+    private fun <T> createFlowableForType(type: Class<T>): Flowable<T> {
+        val bitCount = when (type) {
             Byte::class.java -> Byte.SIZE_BITS
+            Short::class.java -> Short.SIZE_BITS
             Int::class.java -> Int.SIZE_BITS
             Long::class.java -> Long.SIZE_BITS
             Float::class.java -> 24
@@ -190,53 +255,22 @@ abstract class CamRng: Closeable {
             else -> throw UnsupportedOperationException()
         }
 
-        val booleans = mutableListOf<Boolean>()
-
-        return MediatorLiveData<T>().apply {
-            addSource(getLiveBoolean()) {
-                synchronized(this) {
-                    booleans.add(it)
-                    if (booleans.size == bits) {
-                        var x = 0L
-                        booleans.forEach { b ->
-                            x = (x shl 1) or (if (b) 1 else 0)
-                        }
-                        when (type) {
-                            Byte::class.java, Int::class.java, Long::class.java -> {
-                                value = x as T
-                            }
-                            Float::class.java, Double::class.java -> {
-                                value = (x.toDouble() / (1L shl bits)) as T
-                            }
-                        }
-                        booleans.clear()
-                    }
+        return getBooleans()
+            .buffer(bitCount)
+            .map { booleans ->
+                var x = 0L
+                booleans.forEach { boolean ->
+                    x = (x shl 1) or (if (boolean) 1 else 0)
+                }
+                when (type) {
+                    Byte::class.java -> return@map x.toByte() as T
+                    Short::class.java -> return@map x.toShort() as T
+                    Int::class.java -> return@map x.toInt() as T
+                    Long::class.java -> return@map x as T
+                    Float::class.java -> return@map (x / (1L shl bitCount).toFloat()) as T
+                    Double::class.java -> return@map (x / (1L shl bitCount).toDouble()) as T
+                    else -> throw UnsupportedOperationException()
                 }
             }
-        }
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun <T> getSingleData(liveData: LiveData<T>): T {
-        // TODO find a proper way to await a LiveData
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            throw Exception("Cannot invoke this method on the main thread")
-        }
-
-        var data: T? = null
-        val latch = CountDownLatch(2)
-        mainHandler.post {
-            liveData.observeForever(object : Observer<T> {
-                override fun onChanged(t: T) {
-                    data = t
-                    latch.countDown()
-                    if (latch.count == 0L) {
-                        liveData.removeObserver(this)
-                    }
-                }
-            })
-        }
-        latch.await()
-        return data as T
     }
 }

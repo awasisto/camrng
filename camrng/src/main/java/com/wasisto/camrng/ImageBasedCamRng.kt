@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Andika Wasisto
+ * Copyright (c) 2020 Andika Wasisto
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,17 +25,13 @@ package com.wasisto.camrng
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.ImageFormat
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraManager
+import android.hardware.camera2.*
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.Looper
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import io.reactivex.processors.MulticastProcessor
 import java.security.MessageDigest
+import java.util.concurrent.CountDownLatch
 
 /**
  * This class implements a true RNG based on hashed images from device camera.
@@ -48,120 +44,143 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
         @Volatile
         private var instance: ImageBasedCamRng? = null
 
+        /**
+         * Returns a new instance of `NoiseBasedCamRng`.
+         *
+         * @param context the context for the camera.
+         *
+         * @return a new instance of `NoiseBasedCamRng`
+         */
         @Synchronized
         fun getInstance(context: Context): ImageBasedCamRng {
             return instance ?: ImageBasedCamRng(context.applicationContext).also {
                 instance = it
             }
         }
+
+        /**
+         * Resets RNG and frees resources.
+         */
+        @Synchronized
+        fun reset() {
+            instance?.cameraDevice?.close()
+            instance = null
+        }
     }
 
-    var onError: ((Throwable) -> Unit)? = null
+    override val booleanProcessor =
+        MulticastProcessor.create<Boolean>().apply {
+            start()
+        }
 
-    private val _liveBoolean = MutableLiveData<Boolean>()
+    private lateinit var cameraDevice: CameraDevice
 
-    private var cameraDevice: CameraDevice? = null
-
-    private val mainHandler = Handler(Looper.getMainLooper())
+    private lateinit var imageReader: ImageReader
 
     private val backgroundHandler =
         Handler(
-            HandlerThread("${javaClass.simpleName}Background").also {
-                it.start()
+            HandlerThread("ImageBasedCamRngBackground").apply {
+                start()
             }.looper
         )
 
-    private var messageDigest: MessageDigest? = null
+    private val messageDigest = MessageDigest.getInstance("SHA-256")
 
     init {
-        try {
-            messageDigest = MessageDigest.getInstance("SHA-256")
+        var exception: Exception? = null
 
-            val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        val latch = CountDownLatch(1)
 
-            val cameraId = cameraManager.cameraIdList.find {
-                cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == CameraCharacteristics.LENS_FACING_BACK
-            }!!
+        val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
-            val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
+        val cameraId = cameraManager.cameraIdList.find {
+            cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == CameraCharacteristics.LENS_FACING_BACK
+        }!!
 
-            val size = cameraCharacteristics[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).maxBy { it.width * it.height }!!
+        val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
 
-            cameraManager.openCamera(
-                cameraId,
-                object : CameraDevice.StateCallback() {
-                    override fun onOpened(cameraDevice: CameraDevice) {
-                        this@ImageBasedCamRng.cameraDevice = cameraDevice
+        val imageSize = cameraCharacteristics[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).maxBy { it.width * it.height }!!
 
-                        val imageReader = ImageReader.newInstance(size.width, size.height, ImageFormat.JPEG, 2).apply {
-                            setOnImageAvailableListener(
-                                {
-                                    val image = it.acquireNextImage()
+        cameraManager.openCamera(
+            cameraId,
+            object : CameraDevice.StateCallback() {
+                override fun onOpened(cameraDevice: CameraDevice) {
+                    this@ImageBasedCamRng.cameraDevice = cameraDevice
 
-                                    val buffer = image.planes[0].buffer
-                                    val bytes = ByteArray(buffer.remaining())
-                                    buffer.get(bytes)
+                    imageReader = ImageReader.newInstance(imageSize.width, imageSize.height, ImageFormat.JPEG, 1).apply {
+                        setOnImageAvailableListener(
+                            { imageReader ->
+                                val image = imageReader.acquireNextImage()
 
-                                    image.close()
+                                val buffer = image.planes[0].buffer
+                                val bytes = ByteArray(buffer.remaining())
+                                buffer.get(bytes)
 
-                                    messageDigest!!.digest(bytes).forEach { b ->
-                                        var mask = 128
-                                        while (mask != 0) {
-                                            with (b.toInt() and mask != 0) {
-                                                mainHandler.post {
-                                                    _liveBoolean.value = this
-                                                }
-                                            }
-                                            mask = mask shr 1
-                                        }
+                                image.close()
+
+                                messageDigest.digest(bytes).forEach { byte ->
+                                    var mask = 128
+                                    while (mask != 0) {
+                                        booleanProcessor.offer(byte.toInt() and mask != 0)
+                                        mask = mask shr 1
                                     }
-                                },
-                                backgroundHandler)
-                        }
-
-                        cameraDevice.createCaptureSession(
-                            listOf(imageReader.surface),
-                            object : CameraCaptureSession.StateCallback() {
-                                override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
-                                    cameraCaptureSession.setRepeatingRequest(
-                                        cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
-                                            addTarget(imageReader.surface)
-                                        }.build(),
-                                        object : CameraCaptureSession.CaptureCallback() {},
-                                        null
-                                    )
-                                }
-
-                                override fun onConfigureFailed(cameraCaptureSession: CameraCaptureSession) {
-                                    cameraDevice.close()
-                                    onError?.invoke(Exception("Failed to configure capture session"))
                                 }
                             },
                             null
                         )
                     }
 
-                    override fun onDisconnected(cameraDevice: CameraDevice) {
-                        cameraDevice.close()
-                    }
+                    cameraDevice.createCaptureSession(
+                        listOf(imageReader.surface),
+                        object : CameraCaptureSession.StateCallback() {
+                            override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
+                                cameraCaptureSession.setRepeatingRequest(
+                                    cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
+                                        addTarget(imageReader.surface)
+                                    }.build(),
+                                    object : CameraCaptureSession.CaptureCallback() {
+                                        override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+                                            super.onCaptureCompleted(session, request, result)
+                                            latch.countDown()
+                                        }
 
-                    override fun onError(cameraDevice: CameraDevice, error: Int) {
-                        cameraDevice.close()
-                        onError?.invoke(Exception("Failed to open camera. Error code: $error"))
-                    }
-                },
-                null
-            )
-        } catch (error: Throwable) {
-            onError?.invoke(error)
+                                        override fun onCaptureFailed(session: CameraCaptureSession, request: CaptureRequest, failure: CaptureFailure) {
+                                            super.onCaptureFailed(session, request, failure)
+                                            exception = Exception("Capture failed. Failure reason code: ${failure.reason}")
+                                            latch.countDown()
+                                        }
+                                    },
+                                    null
+                                )
+                            }
+
+                            override fun onConfigureFailed(cameraCaptureSession: CameraCaptureSession) {
+                                cameraDevice.close()
+                                exception = Exception("Failed to configure capture session")
+                                latch.countDown()
+                            }
+                        },
+                        null
+                    )
+                }
+
+                override fun onDisconnected(cameraDevice: CameraDevice) {
+                    cameraDevice.close()
+                }
+
+                override fun onError(cameraDevice: CameraDevice, error: Int) {
+                    cameraDevice.close()
+                    exception = Exception("Failed to open camera. Error code: $error")
+                    latch.countDown()
+                }
+            },
+            backgroundHandler
+        )
+
+        latch.await()
+
+        exception?.let {
+            throw it
         }
-    }
-
-    override fun getLiveBoolean(): LiveData<Boolean> {
-        return _liveBoolean
-    }
-
-    override fun close() {
-        cameraDevice?.close()
     }
 }

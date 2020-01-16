@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (c) 2019 Andika Wasisto
+  ~ Copyright (c) 2020 Andika Wasisto
   ~
   ~ Permission is hereby granted, free of charge, to any person obtaining a copy
   ~ of this software and associated documentation files (the "Software"), to deal
@@ -23,45 +23,135 @@
 
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="8dp"
+    android:layout_margin="16dp"
     android:orientation="vertical"
-    android:keepScreenOn="true">
+    android:keepScreenOn="true"
+    tools:ignore="HardcodedText">
 
-    <TextView
-        android:id="@+id/bitTextView"
-        android:layout_width="wrap_content"
+    <TableLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="generating..."/>
+        android:stretchColumns="1">
 
-    <TextView
-        android:id="@+id/byteTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="generating..."/>
+        <TableRow>
+            <TextView
+                android:layout_marginBottom="8dp"
+                android:layout_span="2"
+                android:text="Random data stream"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="16sp"/>
+        </TableRow>
 
-    <TextView
-        android:id="@+id/intTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="generating..."/>
+        <TableRow>
+            <TextView
+                android:layout_marginEnd="16dp"
+                android:text="Boolean"/>
 
-    <TextView
-        android:id="@+id/longTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="generating..."/>
+            <TextView
+                android:id="@+id/booleanTextView"
+                android:textColor="?android:textColorPrimary"
+                android:text="generating..."/>
+        </TableRow>
 
-    <TextView
-        android:id="@+id/floatTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="generating..."/>
+        <TableRow>
+            <TextView
+                android:layout_marginEnd="16dp"
+                android:text="Byte"/>
 
-    <TextView
-        android:id="@+id/doubleTextView"
-        android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/byteTextView"
+                android:textColor="?android:textColorPrimary"
+                android:text="generating..."/>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_marginEnd="16dp"
+                android:text="Short"/>
+
+            <TextView
+                android:id="@+id/shortTextView"
+                android:textColor="?android:textColorPrimary"
+                android:text="generating..."/>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_marginEnd="16dp"
+                android:text="Int"/>
+
+            <TextView
+                android:id="@+id/intTextView"
+                android:textColor="?android:textColorPrimary"
+                android:text="generating..."/>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_marginEnd="16dp"
+                android:text="Long"/>
+
+            <TextView
+                android:id="@+id/longTextView"
+                android:textColor="?android:textColorPrimary"
+                android:text="generating..."/>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_marginEnd="16dp"
+                android:text="Float"/>
+
+            <TextView
+                android:id="@+id/floatTextView"
+                android:textColor="?android:textColorPrimary"
+                android:text="generating..."/>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_marginEnd="16dp"
+                android:text="Double"/>
+
+            <TextView
+                android:id="@+id/doubleTextView"
+                android:textColor="?android:textColorPrimary"
+                android:text="generating..."/>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:layout_span="2"
+                android:text="Dice roll"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="16sp"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_marginEnd="16dp"
+                android:text="Outcome"/>
+
+            <TextView
+                android:id="@+id/diceRollOutcomeTextView"
+                android:textColor="?android:textColorPrimary"
+                android:text="-"/>
+        </TableRow>
+    </TableLayout>
+
+    <Button
+        android:id="@+id/diceRollButton"
+        android:layout_width="72dp"
         android:layout_height="wrap_content"
-        android:text="generating..."/>
+        android:layout_marginStart="-3dp"
+        android:layout_marginTop="8dp"
+        android:text="Roll"
+        style="@style/Widget.AppCompat.Button.Colored"/>
 </LinearLayout>

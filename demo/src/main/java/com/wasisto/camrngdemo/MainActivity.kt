@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Andika Wasisto
+ * Copyright (c) 2020 Andika Wasisto
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,9 +29,10 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.observe
 import com.wasisto.camrng.NoiseBasedCamRng
-import com.wasisto.camrng.CamRng
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -40,70 +41,130 @@ class MainActivity : AppCompatActivity() {
         private const val REQUEST_PERMISSIONS = 1
     }
 
-    private lateinit var rng: CamRng
+    private val compositeDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
     }
 
-    override fun onStart() {
-        super.onStart()
-        
-        if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE), REQUEST_PERMISSIONS)
+    override fun onResume() {
+        super.onResume()
+
+        if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            setupRngAndViews()
         } else {
-            setup()
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_PERMISSIONS)
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         if (requestCode == REQUEST_PERMISSIONS) {
-            setup()
+            if (grantResults.size == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                setupRngAndViews()
+            } else {
+                finish()
+            }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        rng.close()
+    private fun setupRngAndViews() {
+        try {
+            val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 200).apply {
+                channel = NoiseBasedCamRng.Channel.GREEN
+            }
+
+            diceRollButton.setOnClickListener {
+                compositeDisposable.add(
+                    camRng.getInt(bound = 6)
+                        .map {
+                            it + 1
+                        }
+                        .subscribeOn(Schedulers.newThread())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe { diceRollOutcome ->
+                            diceRollOutcomeTextView.text = diceRollOutcome.toString()
+                        }
+                )
+            }
+
+            compositeDisposable.add(
+                camRng.getBooleans()
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        booleanTextView.text = it.toString()
+                    }
+            )
+
+            compositeDisposable.add(
+                camRng.getBytes()
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        byteTextView.text = it.toString()
+                    }
+            )
+
+            compositeDisposable.add(
+                camRng.getShorts()
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        shortTextView.text = it.toString()
+                    }
+            )
+
+            compositeDisposable.add(
+                camRng.getInts()
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        intTextView.text = it.toString()
+                    }
+            )
+
+            compositeDisposable.add(
+                camRng.getLongs()
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        longTextView.text = it.toString()
+                    }
+            )
+
+            compositeDisposable.add(
+                camRng.getFloats()
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        floatTextView.text = it.toString()
+                    }
+            )
+
+            compositeDisposable.add(
+                camRng.getDoubles()
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        doubleTextView.text = it.toString()
+                    }
+            )
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            Toast.makeText(this, t.message, Toast.LENGTH_LONG).show()
+        }
     }
 
-    private fun setup() {
-        rng = NoiseBasedCamRng.getInstance(this).apply {
-            channel = NoiseBasedCamRng.Channel.RED
-            useMultiplePixels = true
-            movingAverageWindowLength = 30
-            vonNeumannUnbias = true
-            onError = {
-                it.printStackTrace()
-                Toast.makeText(this@MainActivity, "An error occurred", Toast.LENGTH_LONG).show()
-            }
-        }
+    override fun onPause() {
+        super.onPause()
+        NoiseBasedCamRng.reset()
+    }
 
-        rng.getLiveBoolean().observe(this) {
-            bitTextView.text = it.toString()
-        }
-
-        rng.getLiveByte().observe(this) {
-            byteTextView.text = it.toString()
-        }
-
-        rng.getLiveInt().observe(this) {
-            intTextView.text = it.toString()
-        }
-
-        rng.getLiveLong().observe(this) {
-            longTextView.text = it.toString()
-        }
-
-        rng.getLiveFloat().observe(this) {
-            floatTextView.text = it.toString()
-        }
-
-        rng.getLiveDouble().observe(this) {
-            doubleTextView.text = it.toString()
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+        compositeDisposable.dispose()
     }
 }

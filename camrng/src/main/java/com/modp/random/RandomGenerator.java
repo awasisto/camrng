@@ -20,24 +20,22 @@
  * SOFTWARE.
  */
 
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
+package com.modp.random;
 
-android {
-    compileSdkVersion 29
-    buildToolsVersion '29.0.2'
+/**
+ * Simplified interface for random number generation
+ *
+ * @author Nick Galbreath -- nickg [at] modp [dot] com
+ * @version 1 -- 06-Jul-2005
+ */
+public interface RandomGenerator {
 
-    defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 29
-        versionCode 1
-        versionName '0.0.1'
-    }
-}
-
-dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    compile 'io.reactivex.rxjava2:rxjava:2.2.14'
-    compile 'io.reactivex.rxjava2:rxandroid:2.1.1'
+    /**
+     * Returns N random bits
+     *
+     * See also java.util.Random#next
+     * @param numBits
+     * @return and int with the LSB being random
+     */
+    public int next(int numBits);
 }
