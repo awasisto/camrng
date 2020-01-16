@@ -3,6 +3,13 @@ CamRNG
 
 An Android library project to enable true and quantum random number generation using device camera.
 
+Download
+--------
+
+Download via Gradle:
+
+    implementation 'com.wasisto.camrng:camrng:0.0.2'
+
 Usage Example
 -------------
 
