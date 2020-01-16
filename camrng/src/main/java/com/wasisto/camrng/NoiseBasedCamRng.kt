@@ -261,7 +261,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
          * @return true if the RNG is warmed up.
          */
         fun isWarmedUp(): Boolean {
-            return movingAverageData.size > MOVING_AVERAGE_WINDOW_SIZE - 1
+            return movingAverageData.size >= MOVING_AVERAGE_WINDOW_SIZE - 1
         }
     }
 
