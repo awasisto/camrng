@@ -268,6 +268,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
      * True if the RNG is warmed up.
      */
     var warmedUp = false
+        private set
 
     private fun onDatumAdded() {
         for (i in pixelsToUse.indices) {
