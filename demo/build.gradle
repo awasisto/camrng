@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Andika Wasisto
+ * Copyright (c) 2020 Andika Wasisto
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,13 +41,6 @@ android {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
     implementation 'androidx.appcompat:appcompat:1.1.0'
-
-    implementation 'androidx.core:core-ktx:1.2.0-rc01'
-
-    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.2.0-rc02'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.2.0-rc02'
-
     implementation project(path: ':camrng')
 }
