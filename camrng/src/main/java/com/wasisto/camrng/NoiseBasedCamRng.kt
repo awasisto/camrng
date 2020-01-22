@@ -49,6 +49,12 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
         BLUE
     }
 
+    enum class DebiasingMethod {
+        VON_NEUMANN,
+        XOR_WITH_CSPRNG,
+        NONE
+    }
+
     companion object {
 
         private const val MOVING_AVERAGE_WINDOW_SIZE = 300
@@ -74,8 +80,6 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
             )
 
         private val movingAverageData = mutableListOf<MutableMap<Pair<Int,Int>, Int>>()
-
-        private val csprng = BlumBlumShub(512)
 
         /**
          * Returns a new instance of `NoiseBasedCamRng`.
@@ -259,6 +263,8 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
 
     var channel = Channel.GREEN
 
+    var debiasingMethod = DebiasingMethod.VON_NEUMANN
+
     override val booleanProcessor =
         MulticastProcessor.create<Boolean>().apply {
             start()
@@ -270,12 +276,18 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
     var warmedUp = false
         private set
 
+    private val previousBooleanValues = mutableMapOf<Pair<Int, Int>, Boolean?>()
+
+    private val csprng = BlumBlumShub(512)
+
     private fun onDatumAdded() {
         for (i in pixelsToUse.indices) {
+            val pixel = Pair(pixelsToUse[i].first, pixelsToUse[i].second)
+
             val pixelValues = mutableListOf<Int>()
 
             for (j in movingAverageData.indices) {
-                movingAverageData[j][Pair(pixelsToUse[i].first, pixelsToUse[i].second)]?.let { pixelValue ->
+                movingAverageData[j][pixel]?.let { pixelValue ->
                     pixelValues += when (channel) {
                         Channel.RED -> pixelValue shr 16 and 0xff
                         Channel.GREEN -> pixelValue shr 8 and 0xff
@@ -291,15 +303,31 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
 
                 val pixelMedian = (pixelValues[pixelValues.size / 2] + pixelValues[(pixelValues.size - 1) / 2]) / 2.0
 
-                val booleanValue = when {
+                val pixelBooleanValue = when {
                     pixelLastValue > pixelMedian -> true
                     pixelLastValue < pixelMedian -> false
                     else -> null
                 }
 
-                if (booleanValue != null) {
-                    val unbiasedBooleanValue = booleanValue xor (csprng.next(1) == 1)
-                    booleanProcessor.offer(unbiasedBooleanValue)
+                if (pixelBooleanValue != null) {
+                    when (debiasingMethod) {
+                        DebiasingMethod.VON_NEUMANN -> {
+                            if (previousBooleanValues[pixel] == null) {
+                                previousBooleanValues[pixel] = pixelBooleanValue
+                            } else {
+                                if (previousBooleanValues[pixel] != pixelBooleanValue) {
+                                    booleanProcessor.offer(previousBooleanValues[pixel])
+                                }
+                                previousBooleanValues[pixel] = null
+                            }
+                        }
+                        DebiasingMethod.XOR_WITH_CSPRNG -> {
+                            booleanProcessor.offer(pixelBooleanValue xor (csprng.next(1) == 1))
+                        }
+                        DebiasingMethod.NONE -> {
+                            booleanProcessor.offer(pixelBooleanValue)
+                        }
+                    }
                 }
 
                 if (pixelValues.size >= MOVING_AVERAGE_WINDOW_SIZE) {
