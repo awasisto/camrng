@@ -57,7 +57,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
 
     companion object {
 
-        private const val MOVING_AVERAGE_WINDOW_SIZE = 300
+        private const val MOVING_AVERAGE_WINDOW_SIZE = 100
 
         private const val MINIMUM_DISTANCE_BETWEEN_PIXELS = 100
 
