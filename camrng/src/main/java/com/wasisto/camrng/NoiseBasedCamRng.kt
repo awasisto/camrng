@@ -230,18 +230,29 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
             val pixelsToUse = mutableListOf<Pair<Int, Int>>()
 
             for (i in 0 until numberOfPixelsToUse) {
-                var pixel: Pair<Int, Int>?
+                var pixel: Pair<Int, Int>? = null
 
-                do {
+                for (j in 0 until 100) {
                     pixel = Pair(
                         Random.nextInt(1, imageSize!!.width / MINIMUM_DISTANCE_BETWEEN_PIXELS) * MINIMUM_DISTANCE_BETWEEN_PIXELS,
                         Random.nextInt(1, imageSize!!.height / MINIMUM_DISTANCE_BETWEEN_PIXELS) * MINIMUM_DISTANCE_BETWEEN_PIXELS
                     )
-                } while (usedPixels.contains(pixel))
 
-                pixelsToUse.add(pixel!!)
-                usedPixels.add(pixel)
+                    if (pixelsToUse.contains(pixel) || usedPixels.contains(pixel)) {
+                        pixel = null
+                    } else {
+                        break
+                    }
+                }
+
+                if (pixel != null) {
+                    pixelsToUse.add(pixel)
+                } else {
+                    throw Exception("Unable to find enough unused pixels")
+                }
             }
+
+            usedPixels.addAll(pixelsToUse)
 
             return NoiseBasedCamRng(pixelsToUse).also { instance ->
                 instances.add(instance)
