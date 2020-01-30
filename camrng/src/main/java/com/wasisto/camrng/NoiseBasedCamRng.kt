@@ -272,7 +272,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
         }
     }
 
-    var channel = Channel.GREEN
+    var channel = Channel.RED
 
     var debiasingMethod = DebiasingMethod.VON_NEUMANN
 
