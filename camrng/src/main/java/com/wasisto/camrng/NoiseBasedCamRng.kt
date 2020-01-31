@@ -272,14 +272,20 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
         }
     }
 
-    var channel = Channel.RED
-
-    var debiasingMethod = DebiasingMethod.VON_NEUMANN
-
     override val booleanProcessor =
         MulticastProcessor.create<Boolean>().apply {
             start()
         }
+
+    /**
+     * The color channel. Default value is [Channel.RED].
+     */
+    var channel = Channel.RED
+
+    /**
+     * The debiasing method. Default value is [DebiasingMethod.VON_NEUMANN].
+     */
+    var debiasingMethod = DebiasingMethod.VON_NEUMANN
 
     /**
      * True if the RNG is warmed up.
