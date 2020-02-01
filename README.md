@@ -17,30 +17,32 @@ Usage Example
 class MyActivity : AppCompatActivity() {
 
     companion object {
-        private const val REQUEST_PERMISSIONS = 1
+        private const val REQUEST_CAMERA_PERMISSION = 1
     }
 
-    private val compositeDisposable = CompositeDisposable()
+    private lateinit var compositeDisposable: CompositeDisposable
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.my_activity)
+
+        compositeDisposable = CompositeDisposable()
     }
 
     override fun onResume() {
         super.onResume()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            setupRngAndViews()
+            setupRng()
         } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_PERMISSIONS)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA_PERMISSION)
         }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        if (requestCode == REQUEST_PERMISSIONS) {
-            if (grantResults.size == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                setupRngAndViews()
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                setupRng()
             } else {
                 finish()
             }
@@ -49,9 +51,10 @@ class MyActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRngAndViews() {
-        val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 200).apply {
-            channel = NoiseBasedCamRng.Channel.GREEN
+    private fun setupRng() {
+        val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 500).apply {
+                channel = NoiseBasedCamRng.Channel.RED
+                debiasingMethod = NoiseBasedCamRng.DebiasingMethod.VON_NEUMANN
         }
 
         diceRollButton.setOnClickListener {
