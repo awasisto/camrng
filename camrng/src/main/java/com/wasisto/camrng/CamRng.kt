@@ -33,115 +33,143 @@ abstract class CamRng {
 
     protected abstract val booleanProcessor: MulticastProcessor<Boolean>
 
-    private val _byteFlowable by lazy { createFlowableForType(Byte::class.java) }
+    private val byteFlowable by lazy { createFlowableForType(Byte::class.java) }
 
-    private val _shortFlowable by lazy { createFlowableForType(Short::class.java) }
+    private val shortFlowable by lazy { createFlowableForType(Short::class.java) }
 
-    private val _intFlowable by lazy { createFlowableForType(Int::class.java) }
+    private val intFlowable by lazy { createFlowableForType(Int::class.java) }
 
-    private val _longFlowable by lazy { createFlowableForType(Long::class.java) }
+    private val longFlowable by lazy { createFlowableForType(Long::class.java) }
 
-    private val _floatFlowable by lazy { createFlowableForType(Float::class.java) }
+    private val floatFlowable by lazy { createFlowableForType(Float::class.java) }
 
-    private val _doubleFlowable by lazy { createFlowableForType(Double::class.java) }
+    private val doubleFlowable by lazy { createFlowableForType(Double::class.java) }
 
     /**
      * Returns a `Flowable` that emits random `Boolean` values.
      *
      * @return a `Flowable` that emits random `Boolean` values
      */
-    fun getBooleans() = booleanProcessor as Flowable<Boolean>
+    fun getBooleans(): Flowable<Boolean> {
+        return booleanProcessor
+    }
 
     /**
      * Returns a `Flowable` that emits random `Byte` values.
      *
      * @return a `Flowable` that emits random `Byte` values
      */
-    fun getBytes() = _byteFlowable
+    fun getBytes(): Flowable<Byte> {
+        return byteFlowable
+    }
 
     /**
      * Returns a `Flowable` that emits random `Short` values.
      *
      * @return a `Flowable` that emits random `Short` values
      */
-    fun getShorts() = _shortFlowable
+    fun getShorts(): Flowable<Short> {
+        return shortFlowable
+    }
 
     /**
      * Returns a `Flowable` that emits random `Int` values.
      *
      * @return a `Flowable` that emits random `Int` values
      */
-    fun getInts() = _intFlowable
+    fun getInts(): Flowable<Int> {
+        return intFlowable
+    }
 
     /**
      * Returns a `Flowable` that emits random `Long` values.
      *
      * @return a `Flowable` that emits random `Long` values
      */
-    fun getLongs() = _longFlowable
+    fun getLongs(): Flowable<Long> {
+        return longFlowable
+    }
 
     /**
      * Returns a `Flowable` that emits random `Float` values.
      *
      * @return a `Flowable` that emits random `Float` values
      */
-    fun getFloats() = _floatFlowable
+    fun getFloats(): Flowable<Float> {
+        return floatFlowable
+    }
 
     /**
      * Returns a `Flowable` that emits random `Double` values.
      *
      * @return a `Flowable` that emits random `Double` values
      */
-    fun getDoubles() = _doubleFlowable
+    fun getDoubles(): Flowable<Double> {
+        return doubleFlowable
+    }
 
     /**
      * Returns a `Single` that emits a random `Boolean` value.
      *
      * @return a `Single` that emits a random `Boolean` value
      */
-    fun getBoolean() = Single.fromCallable { getBooleans().blockingNext().iterator().next() }
+    fun getBoolean(): Single<Boolean> {
+        return Single.fromCallable { getBooleans().blockingNext().iterator().next() }
+    }
 
     /**
      * Returns a `Single` that emits a random `Byte` value.
      *
      * @return a `Single` that emits a random `Byte` value
      */
-    fun getByte() = Single.fromCallable { getBytes().blockingNext().iterator().next() }
+    fun getByte(): Single<Byte> {
+        return Single.fromCallable { getBytes().blockingNext().iterator().next() }
+    }
 
     /**
      * Returns a `Single` that emits a random `Short` value.
      *
      * @return a `Single` that emits a random `Short` value
      */
-    fun getShort() = Single.fromCallable { getShorts().blockingNext().iterator().next() }
+    fun getShort(): Single<Short> {
+        return Single.fromCallable { getShorts().blockingNext().iterator().next() }
+    }
 
     /**
      * Returns a `Single` that emits a random `Int` value.
      *
      * @return a `Single` that emits a random `Int` value
      */
-    fun getInt() = Single.fromCallable { getInts().blockingNext().iterator().next() }
+    fun getInt(): Single<Int> {
+        return Single.fromCallable { getInts().blockingNext().iterator().next() }
+    }
 
     /**
      * Returns a `Single` that emits a random `Long` value.
      *
      * @return a `Single` that emits a random `Long` value
      */
-    fun getLong() = Single.fromCallable { getLongs().blockingNext().iterator().next() }
+    fun getLong(): Single<Long> {
+        return Single.fromCallable { getLongs().blockingNext().iterator().next() }
+    }
 
     /**
      * Returns a `Single` that emits a random `Float` value between 0.0 (inclusive) and 1.0 (exclusive).
      *
      * @return a `Single` that emits a random `Float` value
      */
-    fun getFloat() = Single.fromCallable { getFloats().blockingNext().iterator().next() }
+    fun getFloat(): Single<Float> {
+        return Single.fromCallable { getFloats().blockingNext().iterator().next() }
+    }
 
     /**
      * Returns a `Single` that emits a random `Double` value between 0.0 (inclusive) and 1.0 (exclusive).
      *
      * @return a `Single` that emits a random `Double` value
      */
-    fun getDouble() = Single.fromCallable { getDoubles().blockingNext().iterator().next() }
+    fun getDouble(): Single<Double> {
+        return Single.fromCallable { getDoubles().blockingNext().iterator().next() }
+    }
 
     /**
      * Returns a `Single` that emits a random `Int` value between 0 (inclusive) and the specified bound (exclusive).
