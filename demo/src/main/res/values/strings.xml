@@ -23,6 +23,9 @@
 <resources>
     <string name="app_name">CamRNG Demo</string>
     <string name="empty">-</string>
+    <string name="rng_status">RNG Status</string>
+    <string name="warming_up">Warming up</string>
+    <string name="warmed_up">Warmed up</string>
     <string name="random_data_stream">Random data stream</string>
     <string name="boolean_label">Boolean</string>
     <string name="byte_label">Byte</string>

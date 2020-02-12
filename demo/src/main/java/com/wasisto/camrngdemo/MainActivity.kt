@@ -94,6 +94,19 @@ class MainActivity : AppCompatActivity() {
             }
 
             compositeDisposable.add(
+                camRng.warmedUp
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        if (it) {
+                            statusTextView.setText(R.string.warmed_up)
+                        } else {
+                            statusTextView.setText(R.string.warming_up)
+                        }
+                    }
+            )
+
+            compositeDisposable.add(
                 camRng.getBooleans()
                     .subscribeOn(Schedulers.newThread())
                     .observeOn(AndroidSchedulers.mainThread())

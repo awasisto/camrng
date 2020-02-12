@@ -38,6 +38,24 @@
             <TextView
                 android:layout_marginBottom="8dp"
                 android:layout_span="2"
+                android:text="@string/rng_status"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="16sp"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:id="@+id/statusTextView"
+                android:textColor="?android:textColorPrimary"
+                android:text="@string/empty"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:layout_span="2"
                 android:text="@string/random_data_stream"
                 android:fontFamily="sans-serif-medium"
                 android:textColor="?android:textColorPrimary"
