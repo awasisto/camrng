@@ -294,7 +294,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
      */
     val warmedUp = BehaviorSubject.createDefault(false)
 
-    private val previousBooleanValues = mutableMapOf<Pair<Int, Int>, Boolean?>()
+    private var previousPixelBooleanValue: Boolean? = null
 
     private val csprng = BlumBlumShub(512)
 
@@ -330,13 +330,13 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                 if (pixelBooleanValue != null) {
                     when (debiasingMethod) {
                         DebiasingMethod.VON_NEUMANN -> {
-                            if (previousBooleanValues[pixel] == null) {
-                                previousBooleanValues[pixel] = pixelBooleanValue
+                            if (previousPixelBooleanValue == null) {
+                                previousPixelBooleanValue = pixelBooleanValue
                             } else {
-                                if (previousBooleanValues[pixel] != pixelBooleanValue) {
-                                    booleanProcessor.offer(previousBooleanValues[pixel])
+                                if (previousPixelBooleanValue != pixelBooleanValue) {
+                                    booleanProcessor.offer(previousPixelBooleanValue)
                                 }
-                                previousBooleanValues[pixel] = null
+                                previousPixelBooleanValue = null
                             }
                         }
                         DebiasingMethod.XOR_WITH_CSPRNG -> {
