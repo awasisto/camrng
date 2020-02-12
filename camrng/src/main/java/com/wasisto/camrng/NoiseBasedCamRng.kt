@@ -33,11 +33,12 @@ import android.os.HandlerThread
 import android.util.Size
 import com.modp.random.BlumBlumShub
 import io.reactivex.processors.MulticastProcessor
+import io.reactivex.subjects.BehaviorSubject
 import java.util.concurrent.CountDownLatch
 import kotlin.random.Random
 
 /**
- * This class implements a quantum RNG based on camera shot noise or true RNG based on camera
+ * This class implements a quantum RNG based on camera noise or true RNG based on camera
  * Johnson noise.
  */
 @SuppressLint("MissingPermission")
@@ -288,10 +289,10 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
     var debiasingMethod = DebiasingMethod.VON_NEUMANN
 
     /**
-     * True if the RNG is warmed up.
+     * An `Observable` that emits booleans that indicates whether or not this RNG has been
+     * warmed up.
      */
-    var warmedUp = false
-        private set
+    val warmedUp = BehaviorSubject.createDefault(false)
 
     private val previousBooleanValues = mutableMapOf<Pair<Int, Int>, Boolean?>()
 
@@ -347,8 +348,8 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                     }
                 }
 
-                if (pixelValues.size >= MOVING_AVERAGE_WINDOW_SIZE) {
-                    warmedUp = true
+                if (warmedUp.value != true && pixelValues.size >= MOVING_AVERAGE_WINDOW_SIZE) {
+                    warmedUp.onNext(true)
                 }
             }
         }
