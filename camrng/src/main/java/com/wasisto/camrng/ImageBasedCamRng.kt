@@ -34,7 +34,7 @@ import java.security.MessageDigest
 import java.util.concurrent.CountDownLatch
 
 /**
- * This class implements a true RNG based on hashed images from device camera.
+ * This class implements a simple true random number generator (TRNG) by hashing camera images.
  */
 @SuppressLint("MissingPermission")
 class ImageBasedCamRng private constructor(context: Context) : CamRng() {
@@ -45,11 +45,11 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
         private var instance: ImageBasedCamRng? = null
 
         /**
-         * Returns a new instance of `NoiseBasedCamRng`.
+         * Returns a new instance of `ImageBasedCamRng`.
          *
          * @param context the context for the camera.
          *
-         * @return a new instance of `NoiseBasedCamRng`
+         * @return a new instance of `ImageBasedCamRng`
          */
         @Synchronized
         fun getInstance(context: Context): ImageBasedCamRng {
@@ -59,7 +59,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
         }
 
         /**
-         * Resets RNG and frees resources.
+         * Resets the generator and frees resources.
          */
         @Synchronized
         fun reset() {

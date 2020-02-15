@@ -38,8 +38,7 @@ import java.util.concurrent.CountDownLatch
 import kotlin.random.Random
 
 /**
- * This class implements a quantum RNG based on camera noise or true RNG based on camera
- * Johnson noise.
+ * This class implements a quantum random number generator (QRNG) based on camera noise.
  */
 @SuppressLint("MissingPermission")
 class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<Int, Int>>) : CamRng() {
@@ -261,7 +260,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
         }
 
         /**
-         * Resets RNG and frees resources.
+         * Resets the generator and frees resources.
          */
         @Synchronized
         fun reset() {

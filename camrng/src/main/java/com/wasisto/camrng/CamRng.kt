@@ -27,7 +27,7 @@ import io.reactivex.Single
 import io.reactivex.processors.MulticastProcessor
 
 /**
- * This class is the superclass for all camera-based RNGs.
+ * This class is the superclass for all camera-based random number generators.
  */
 abstract class CamRng {
 
