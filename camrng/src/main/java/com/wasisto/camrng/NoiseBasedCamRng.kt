@@ -51,7 +51,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
 
     enum class DebiasingMethod {
         VON_NEUMANN,
-        XOR_WITH_CSPRNG,
+        XOR_WITH_A_CSPRNG,
         NONE
     }
 
@@ -338,7 +338,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                                 previousPixelBooleanValue = null
                             }
                         }
-                        DebiasingMethod.XOR_WITH_CSPRNG -> {
+                        DebiasingMethod.XOR_WITH_A_CSPRNG -> {
                             booleanProcessor.offer(pixelBooleanValue xor (csprng.next(1) == 1))
                         }
                         DebiasingMethod.NONE -> {
