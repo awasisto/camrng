@@ -98,6 +98,21 @@
         <TableRow>
             <TextView
                 android:layout_marginEnd="16dp"
+                android:text="@string/char_label"/>
+
+            <FrameLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/charTextView"
+                    android:textColor="?android:textColorPrimary"
+                    android:text="@string/empty"/>
+            </FrameLayout>
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_marginEnd="16dp"
                 android:text="@string/int_label"/>
 
             <TextView

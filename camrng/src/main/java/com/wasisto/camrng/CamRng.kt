@@ -37,6 +37,8 @@ abstract class CamRng {
 
     private val shortFlowable by lazy { createFlowableForType(Short::class.java) }
 
+    private val charFlowable by lazy { createFlowableForType(Char::class.java) }
+
     private val intFlowable by lazy { createFlowableForType(Int::class.java) }
 
     private val longFlowable by lazy { createFlowableForType(Long::class.java) }
@@ -70,6 +72,15 @@ abstract class CamRng {
      */
     fun getShorts(): Flowable<Short> {
         return shortFlowable
+    }
+
+    /**
+     * Returns a `Flowable` that emits random `Char` values.
+     *
+     * @return a `Flowable` that emits random `Char` values
+     */
+    fun getChars(): Flowable<Char> {
+        return charFlowable
     }
 
     /**
@@ -133,6 +144,15 @@ abstract class CamRng {
      */
     fun getShort(): Single<Short> {
         return Single.fromCallable { getShorts().blockingNext().iterator().next() }
+    }
+
+    /**
+     * Returns a `Single` that emits a random `Char` value.
+     *
+     * @return a `Single` that emits a random `Char` value
+     */
+    fun getChar(): Single<Char> {
+        return Single.fromCallable { getChars().blockingNext().iterator().next() }
     }
 
     /**
@@ -276,6 +296,7 @@ abstract class CamRng {
         val bitCount = when (type) {
             Byte::class.java -> Byte.SIZE_BITS
             Short::class.java -> Short.SIZE_BITS
+            Char::class.java -> Char.SIZE_BITS
             Int::class.java -> Int.SIZE_BITS
             Long::class.java -> Long.SIZE_BITS
             Float::class.java -> 24
@@ -293,6 +314,7 @@ abstract class CamRng {
                 when (type) {
                     Byte::class.java -> return@map x.toByte() as T
                     Short::class.java -> return@map x.toShort() as T
+                    Char::class.java -> return@map x.toChar() as T
                     Int::class.java -> return@map x.toInt() as T
                     Long::class.java -> return@map x as T
                     Float::class.java -> return@map (x / (1L shl bitCount).toFloat()) as T

@@ -30,6 +30,7 @@
     <string name="boolean_label">Boolean</string>
     <string name="byte_label">Byte</string>
     <string name="short_label">Short</string>
+    <string name="char_label">Char</string>
     <string name="int_label">Int</string>
     <string name="long_label">Long</string>
     <string name="float_label">Float</string>

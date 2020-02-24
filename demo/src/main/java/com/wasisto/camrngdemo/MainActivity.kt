@@ -134,6 +134,15 @@ class MainActivity : AppCompatActivity() {
             )
 
             compositeDisposable.add(
+                camRng.getChars()
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        charTextView.text = it.toString()
+                    }
+            )
+
+            compositeDisposable.add(
                 camRng.getInts()
                     .subscribeOn(Schedulers.newThread())
                     .observeOn(AndroidSchedulers.mainThread())
