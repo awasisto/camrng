@@ -179,6 +179,8 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                                                     if (maxAnalogSensitivity != null && maxAnalogSensitivity > maxDigitalSensitivity) {
                                                         set(CaptureRequest.SENSOR_SENSITIVITY, maxAnalogSensitivity)
                                                     }
+                                                } else if (maxAnalogSensitivity != null) {
+                                                    set(CaptureRequest.SENSOR_SENSITIVITY, maxAnalogSensitivity)
                                                 }
                                             }.build(),
                                             object : CameraCaptureSession.CaptureCallback() {
