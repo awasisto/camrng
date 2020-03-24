@@ -64,7 +64,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
         @Volatile
         private var instances = mutableListOf<NoiseBasedCamRng>()
 
-        private var usedPixels = mutableListOf<Pair<Int, Int>>()
+        private var pixels = mutableListOf<Pair<Int, Int>>()
 
         private var imageSize: Size? = null
 
@@ -123,16 +123,16 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
 
                                         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
-                                        val datum = mutableMapOf<Pair<Int, Int>, Int>()
+                                        val frame = mutableMapOf<Pair<Int, Int>, Int>()
 
-                                        for (i in usedPixels.indices) {
-                                            datum[usedPixels[i]] = bitmap.getPixel(usedPixels[i].first, usedPixels[i].second)
+                                        for (i in pixels.indices) {
+                                            frame[pixels[i]] = bitmap.getPixel(pixels[i].first, pixels[i].second)
                                         }
 
-                                        movingAverageData += datum
+                                        movingAverageData += frame
 
                                         for (i in instances.indices) {
-                                            instances[i].onDatumAdded()
+                                            instances[i].onDataUpdated()
                                         }
 
                                         if (movingAverageData.size >= MOVING_AVERAGE_WINDOW_SIZE) {
@@ -240,7 +240,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                         Random.nextInt(1, imageSize!!.height / MINIMUM_DISTANCE_BETWEEN_PIXELS) * MINIMUM_DISTANCE_BETWEEN_PIXELS
                     )
 
-                    if (pixelsToUse.contains(pixel) || usedPixels.contains(pixel)) {
+                    if (pixelsToUse.contains(pixel) || pixels.contains(pixel)) {
                         pixel = null
                     } else {
                         break
@@ -254,7 +254,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                 }
             }
 
-            usedPixels.addAll(pixelsToUse)
+            pixels.addAll(pixelsToUse)
 
             return NoiseBasedCamRng(pixelsToUse).also { instance ->
                 instances.add(instance)
@@ -269,7 +269,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
             cameraDevice?.close()
             cameraDevice = null
             instances.clear()
-            usedPixels.clear()
+            pixels.clear()
             movingAverageData.clear()
         }
     }
@@ -299,7 +299,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
 
     private val csprng = BlumBlumShub(512)
 
-    private fun onDatumAdded() {
+    private fun onDataUpdated() {
         for (i in pixelsToUse.indices) {
             val pixel = Pair(pixelsToUse[i].first, pixelsToUse[i].second)
 

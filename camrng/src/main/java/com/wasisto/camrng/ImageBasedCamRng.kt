@@ -119,7 +119,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                                 image.close()
 
                                 messageDigest.digest(bytes).forEach { byte ->
-                                    var mask = 128
+                                    var mask = 0b10000000
                                     while (mask != 0) {
                                         booleanProcessor.offer(byte.toInt() and mask != 0)
                                         mask = mask shr 1
