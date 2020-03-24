@@ -48,10 +48,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         compositeDisposable = CompositeDisposable()
-    }
-
-    override fun onResume() {
-        super.onResume()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             setupRng()
@@ -73,123 +69,115 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRng() {
-        try {
-            val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 500).apply {
-                channel = NoiseBasedCamRng.Channel.RED
-                whiteningMethod = NoiseBasedCamRng.WhiteningMethod.VON_NEUMANN
-            }
-
-            diceRollButton.setOnClickListener {
-                compositeDisposable.add(
-                    camRng.getInt(bound = 6)
-                        .map {
-                            it + 1
-                        }
-                        .subscribeOn(Schedulers.newThread())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe { diceRollOutcome ->
-                            diceRollOutcomeTextView.text = diceRollOutcome.toString()
-                        }
-                )
-            }
-
-            compositeDisposable.add(
-                camRng.warmedUp
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        if (it) {
-                            statusTextView.setText(R.string.warmed_up)
-                        } else {
-                            statusTextView.setText(R.string.warming_up)
-                        }
-                    }
-            )
-
-            compositeDisposable.add(
-                camRng.getBooleans()
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        booleanTextView.text = it.toString()
-                    }
-            )
-
-            compositeDisposable.add(
-                camRng.getBytes()
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        byteTextView.text = it.toString()
-                    }
-            )
-
-            compositeDisposable.add(
-                camRng.getShorts()
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        shortTextView.text = it.toString()
-                    }
-            )
-
-            compositeDisposable.add(
-                camRng.getChars()
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        charTextView.text = it.toString()
-                    }
-            )
-
-            compositeDisposable.add(
-                camRng.getInts()
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        intTextView.text = it.toString()
-                    }
-            )
-
-            compositeDisposable.add(
-                camRng.getLongs()
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        longTextView.text = it.toString()
-                    }
-            )
-
-            compositeDisposable.add(
-                camRng.getFloats()
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        floatTextView.text = it.toString()
-                    }
-            )
-
-            compositeDisposable.add(
-                camRng.getDoubles()
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        doubleTextView.text = it.toString()
-                    }
-            )
-        } catch (t: Throwable) {
-            t.printStackTrace()
-            Toast.makeText(this, t.message, Toast.LENGTH_LONG).show()
+        val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 500).apply {
+            channel = NoiseBasedCamRng.Channel.RED
+            whiteningMethod = NoiseBasedCamRng.WhiteningMethod.VON_NEUMANN
         }
-    }
 
-    override fun onPause() {
-        super.onPause()
-        NoiseBasedCamRng.reset()
+        diceRollButton.setOnClickListener {
+            compositeDisposable.add(
+                camRng.getInt(bound = 6)
+                    .map {
+                        it + 1
+                    }
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe { diceRollOutcome ->
+                        diceRollOutcomeTextView.text = diceRollOutcome.toString()
+                    }
+            )
+        }
+
+        compositeDisposable.add(
+            camRng.warmedUp
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    if (it) {
+                        statusTextView.setText(R.string.warmed_up)
+                    } else {
+                        statusTextView.setText(R.string.warming_up)
+                    }
+                }
+        )
+
+        compositeDisposable.add(
+            camRng.getBooleans()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    booleanTextView.text = it.toString()
+                }
+        )
+
+        compositeDisposable.add(
+            camRng.getBytes()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    byteTextView.text = it.toString()
+                }
+        )
+
+        compositeDisposable.add(
+            camRng.getShorts()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    shortTextView.text = it.toString()
+                }
+        )
+
+        compositeDisposable.add(
+            camRng.getChars()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    charTextView.text = it.toString()
+                }
+        )
+
+        compositeDisposable.add(
+            camRng.getInts()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    intTextView.text = it.toString()
+                }
+        )
+
+        compositeDisposable.add(
+            camRng.getLongs()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    longTextView.text = it.toString()
+                }
+        )
+
+        compositeDisposable.add(
+            camRng.getFloats()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    floatTextView.text = it.toString()
+                }
+        )
+
+        compositeDisposable.add(
+            camRng.getDoubles()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    doubleTextView.text = it.toString()
+                }
+        )
     }
 
     override fun onDestroy() {
         super.onDestroy()
+
+        NoiseBasedCamRng.reset()
         compositeDisposable.dispose()
     }
 }

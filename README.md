@@ -27,10 +27,6 @@ class MyActivity : AppCompatActivity() {
         setContentView(R.layout.my_activity)
 
         compositeDisposable = CompositeDisposable()
-    }
-
-    override fun onResume() {
-        super.onResume()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             setupRng()
@@ -72,13 +68,10 @@ class MyActivity : AppCompatActivity() {
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-        NoiseBasedCamRng.reset()
-    }
-
     override fun onDestroy() {
         super.onDestroy()
+
+        NoiseBasedCamRng.reset()
         compositeDisposable.dispose()
     }
 }
