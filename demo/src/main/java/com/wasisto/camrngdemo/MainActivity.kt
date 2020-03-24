@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         try {
             val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 500).apply {
                 channel = NoiseBasedCamRng.Channel.RED
-                debiasingMethod = NoiseBasedCamRng.DebiasingMethod.VON_NEUMANN
+                whiteningMethod = NoiseBasedCamRng.WhiteningMethod.VON_NEUMANN
             }
 
             diceRollButton.setOnClickListener {

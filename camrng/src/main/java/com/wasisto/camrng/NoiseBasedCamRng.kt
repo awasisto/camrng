@@ -49,7 +49,7 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
         BLUE
     }
 
-    enum class DebiasingMethod {
+    enum class WhiteningMethod {
         VON_NEUMANN,
         XOR_WITH_A_CSPRNG,
         NONE
@@ -283,9 +283,9 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
     var channel = Channel.RED
 
     /**
-     * The debiasing method. Default value is [DebiasingMethod.VON_NEUMANN].
+     * The whitening method. Default value is [WhiteningMethod.VON_NEUMANN].
      */
-    var debiasingMethod = DebiasingMethod.VON_NEUMANN
+    var whiteningMethod = WhiteningMethod.VON_NEUMANN
 
     /**
      * An `Observable` that emits booleans that indicates whether or not this RNG has been
@@ -327,8 +327,8 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                 }
 
                 if (pixelBooleanValue != null) {
-                    when (debiasingMethod) {
-                        DebiasingMethod.VON_NEUMANN -> {
+                    when (whiteningMethod) {
+                        WhiteningMethod.VON_NEUMANN -> {
                             if (previousPixelBooleanValue == null) {
                                 previousPixelBooleanValue = pixelBooleanValue
                             } else {
@@ -338,10 +338,10 @@ class NoiseBasedCamRng private constructor(private val pixelsToUse: List<Pair<In
                                 previousPixelBooleanValue = null
                             }
                         }
-                        DebiasingMethod.XOR_WITH_A_CSPRNG -> {
+                        WhiteningMethod.XOR_WITH_A_CSPRNG -> {
                             booleanProcessor.offer(pixelBooleanValue xor (csprng.next(1) == 1))
                         }
-                        DebiasingMethod.NONE -> {
+                        WhiteningMethod.NONE -> {
                             booleanProcessor.offer(pixelBooleanValue)
                         }
                     }
