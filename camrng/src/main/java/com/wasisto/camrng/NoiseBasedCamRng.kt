@@ -47,12 +47,6 @@ import kotlin.random.Random
 @SuppressLint("MissingPermission")
 class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : CamRng() {
 
-    enum class Channel {
-        RED,
-        GREEN,
-        BLUE
-    }
-
     enum class WhiteningMethod {
         VON_NEUMANN,
         XOR_WITH_A_CSPRNG,
@@ -105,13 +99,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         private val threadPoolExecutor = Executors.newCachedThreadPool()
 
-        private var pixelsInUse = mutableListOf<Pair<Int, Int>>()
-
-        private val pixelsRedValues = mutableMapOf<Pair<Int, Int>, MutableList<Int>>()
-
         private val pixelsGreenValues = mutableMapOf<Pair<Int, Int>, MutableList<Int>>()
-
-        private val pixelsBlueValues = mutableMapOf<Pair<Int, Int>, MutableList<Int>>()
 
         /**
          * Returns a new instance of `NoiseBasedCamRng`.
@@ -183,11 +171,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                                                         synchronized(NoiseBasedCamRng) {
                                                             if (System.currentTimeMillis() - lastTimeExposureAdjusted > 3000) {
-                                                                for (pixel in pixelsInUse) {
+                                                                for (pixel in pixelsGreenValues.keys) {
                                                                     val rgb = bitmap.getPixel(pixel.first, pixel.second)
-                                                                    pixelsRedValues[pixel]!! += rgb shr 16 and 0xff
                                                                     pixelsGreenValues[pixel]!! += rgb shr 8 and 0xff
-                                                                    pixelsBlueValues[pixel]!! += rgb shr 0 and 0xff
                                                                 }
 
                                                                 val aePixelsGreenValues = mutableListOf<Int>()
@@ -206,11 +192,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                                                     instances[i].onDataUpdated()
                                                                 }
 
-                                                                if (pixelsGreenValues[pixelsInUse[0]]!!.size >= DATA_WINDOW_SIZE) {
-                                                                    for (pixel in pixelsInUse) {
-                                                                        pixelsRedValues[pixel]!!.removeAt(0)
+                                                                if (pixelsGreenValues[pixelsGreenValues.keys.first()]!!.size >= DATA_WINDOW_SIZE) {
+                                                                    for (pixel in pixelsGreenValues.keys) {
                                                                         pixelsGreenValues[pixel]!!.removeAt(0)
-                                                                        pixelsBlueValues[pixel]!!.removeAt(0)
                                                                     }
                                                                 }
                                                             } else {
@@ -339,7 +323,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                         Random.nextInt(1, imageSize.height / MINIMUM_DISTANCE_BETWEEN_PIXELS) * MINIMUM_DISTANCE_BETWEEN_PIXELS
                     )
 
-                    if (pixels.contains(pixel) || pixelsInUse.contains(pixel)) {
+                    if (pixels.contains(pixel) || pixelsGreenValues.containsKey(pixel)) {
                         pixel = null
                     } else {
                         break
@@ -354,10 +338,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             }
 
             for (pixel in pixels) {
-                pixelsInUse.add(pixel)
-                pixelsRedValues[pixel] = mutableListOf()
                 pixelsGreenValues[pixel] = mutableListOf()
-                pixelsBlueValues[pixel] = mutableListOf()
             }
 
             return NoiseBasedCamRng(pixels).also { instance ->
@@ -381,10 +362,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             cameraCaptureSession = null
             captureCallback = null
             instances.clear()
-            pixelsInUse.clear()
-            pixelsRedValues.clear()
             pixelsGreenValues.clear()
-            pixelsBlueValues.clear()
         }
 
         private fun adjustExposureIfNecessary(): Boolean {
@@ -437,11 +415,6 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         }
 
     /**
-     * The color channel. Default value is [Channel.RED].
-     */
-    var channel = Channel.RED
-
-    /**
      * The whitening method. Default value is [WhiteningMethod.VON_NEUMANN].
      */
     var whiteningMethod = WhiteningMethod.VON_NEUMANN
@@ -467,11 +440,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         val pixelsValues = mutableListOf<Int>()
 
         for (pixel in pixels) {
-            val pixelValues = when (channel) {
-                Channel.RED -> pixelsRedValues[pixel]!!
-                Channel.GREEN -> pixelsGreenValues[pixel]!!
-                Channel.BLUE -> pixelsBlueValues[pixel]!!
-            }
+            val pixelValues = pixelsGreenValues[pixel]!!
 
             if (pixelValues.isNotEmpty()) {
                 val sortedPixelValues = pixelValues.sorted()
