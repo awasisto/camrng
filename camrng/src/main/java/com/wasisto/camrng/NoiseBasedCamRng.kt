@@ -348,14 +348,17 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                 val exposureAdjusted = adjustExposureIfNecessary(bitmap)
 
                 if (exposureAdjusted) {
+                    for (values in pixelsGreenValues.values) {
+                        values.clear()
+                    }
                     lastTimeExposureAdjusted = System.currentTimeMillis()
                 }
 
-                if (pixelsGreenValues[pixelsGreenValues.keys.first()]!!.size >= 2) {
-                    for (i in instances.indices) {
-                        instances[i].onDataUpdated()
-                    }
+                for (i in instances.indices) {
+                    instances[i].onDataUpdated()
+                }
 
+                if (pixelsGreenValues.isNotEmpty() && pixelsGreenValues[pixelsGreenValues.keys.first()]!!.size >= 2) {
                     for (pixelGreenValues in pixelsGreenValues.values) {
                         pixelGreenValues.clear()
                     }
@@ -406,9 +409,6 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
             if (exposureAdjusted) {
                 cameraCaptureSession?.setRepeatingRequest(captureRequestBuilder!!.build(), captureCallback, backgroundHandler)
-                for (values in pixelsGreenValues.values) {
-                    values.clear()
-                }
                 return true
             }
 
@@ -437,45 +437,46 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
     private val csprng = BlumBlumShub(512)
 
     private fun onDataUpdated() {
-        val pixelsValues1 = mutableListOf<Int>()
-        val pixelsValues2 = mutableListOf<Int>()
+        val pixelsValues = mutableListOf<Int>()
 
-        for (pixel in pixels) {
-            val pixelValue1 = pixelsGreenValues[pixel]!![0]
-            val pixelValue2 = pixelsGreenValues[pixel]!![1]
+        if (pixelsGreenValues[pixels.first()]!!.size > 0) {
+            for (pixel in pixels) {
+                pixelsValues += pixelsGreenValues[pixel]!!.last()
 
-            pixelsValues1.add(pixelValue1)
-            pixelsValues2.add(pixelValue2)
+                if (pixelsGreenValues[pixel]!!.size >= 2) {
+                    val pixelValue1 = pixelsGreenValues[pixel]!![0]
+                    val pixelValue2 = pixelsGreenValues[pixel]!![1]
 
-            val pixelBooleanValue = when {
-                pixelValue1 < pixelValue2 -> true
-                pixelValue1 > pixelValue2 -> false
-                else -> null
-            }
+                    val pixelBooleanValue = when {
+                        pixelValue1 < pixelValue2 -> true
+                        pixelValue1 > pixelValue2 -> false
+                        else -> null
+                    }
 
-            if (pixelBooleanValue != null) {
-                when (whiteningMethod) {
-                    WhiteningMethod.VON_NEUMANN -> {
-                        if (previousPixelBooleanValue == null) {
-                            previousPixelBooleanValue = pixelBooleanValue
-                        } else {
-                            if (previousPixelBooleanValue != pixelBooleanValue) {
-                                booleanProcessor.offer(previousPixelBooleanValue)
+                    if (pixelBooleanValue != null) {
+                        when (whiteningMethod) {
+                            WhiteningMethod.VON_NEUMANN -> {
+                                if (previousPixelBooleanValue == null) {
+                                    previousPixelBooleanValue = pixelBooleanValue
+                                } else {
+                                    if (previousPixelBooleanValue != pixelBooleanValue) {
+                                        booleanProcessor.offer(previousPixelBooleanValue)
+                                    }
+                                    previousPixelBooleanValue = null
+                                }
                             }
-                            previousPixelBooleanValue = null
+                            WhiteningMethod.XOR_WITH_A_CSPRNG -> {
+                                booleanProcessor.offer(pixelBooleanValue xor (csprng.next(1) == 1))
+                            }
+                            WhiteningMethod.NONE -> {
+                                booleanProcessor.offer(pixelBooleanValue)
+                            }
                         }
-                    }
-                    WhiteningMethod.XOR_WITH_A_CSPRNG -> {
-                        booleanProcessor.offer(pixelBooleanValue xor (csprng.next(1) == 1))
-                    }
-                    WhiteningMethod.NONE -> {
-                        booleanProcessor.offer(pixelBooleanValue)
                     }
                 }
             }
-        }
 
-        (rawNoise as MulticastProcessor).offer(pixelsValues1)
-        (rawNoise as MulticastProcessor).offer(pixelsValues2)
+            (rawNoise as MulticastProcessor).offer(pixelsValues)
+        }
     }
 }
