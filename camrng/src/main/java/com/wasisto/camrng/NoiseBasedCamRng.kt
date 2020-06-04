@@ -341,6 +341,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             captureCallback = null
             instances.clear()
             pixelsGreenValues.clear()
+            lastTimeExposureAdjusted = -1L
         }
 
         private fun isHardwareLevelFullSupported(): Boolean {
