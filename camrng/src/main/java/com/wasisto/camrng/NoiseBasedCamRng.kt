@@ -38,6 +38,7 @@ import io.reactivex.Flowable
 import io.reactivex.processors.MulticastProcessor
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
@@ -55,6 +56,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         XOR_WITH_A_CSPRNG,
         NONE
     }
+
+    class NotEnoughUnusedPixelsException : Exception()
 
     companion object {
 
@@ -109,7 +112,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         private val pixelsGreenValues = mutableMapOf<Pair<Int, Int>, MutableList<Int>>()
 
         /**
-         * Returns a new instance of `NoiseBasedCamRng`.
+         * Returns a new instance of `NoiseBasedCamRng`. If `numberOfPixels` is less than or equal
+         * to zero, the maximum number of pixels will be used.
          *
          * @param context the context for the camera.
          * @param numberOfPixels the number of pixels to use.
@@ -117,7 +121,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
          * @return a new instance of `NoiseBasedCamRng`
          */
         @Synchronized
-        fun newInstance(context: Context, numberOfPixels: Int): NoiseBasedCamRng {
+        fun newInstance(context: Context, numberOfPixels: Int = 0): NoiseBasedCamRng {
             if (cameraDevice == null) {
                 var exception: Exception? = null
 
@@ -284,7 +288,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
             val pixels = mutableListOf<Pair<Int, Int>>()
 
-            for (i in 0 until numberOfPixels) {
+            var i = 0
+            while (i < numberOfPixels || numberOfPixels <= 0) {
                 var pixel: Pair<Int, Int>? = null
 
                 for (j in 0 until 100) {
@@ -303,8 +308,14 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                 if (pixel != null) {
                     pixels.add(pixel)
                 } else {
-                    throw Exception("Unable to find enough unused pixels")
+                    if (numberOfPixels <= 0) {
+                        break
+                    } else {
+                        throw NotEnoughUnusedPixelsException()
+                    }
                 }
+
+                i++
             }
 
             for (pixel in pixels) {
