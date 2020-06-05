@@ -1,7 +1,7 @@
 ![CamRNG](https://i.imgur.com/3H8NW2B.png)
 ==========================================
 
-An Android library project to enable quantum random number generation using device camera.
+An Android library project enabling quantum random number generation using device camera.
 
 Download
 --------
@@ -25,9 +25,13 @@ class MyActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.my_activity)
+    }
+
+    override fun onStart() {
+        super.onStart()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            setupRng()
+            onPermissionGranted()
         } else {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA_PERMISSION)
         }
@@ -45,29 +49,36 @@ class MyActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    private fun onPermissionGranted() {
+        try {
+            val camRng = NoiseBasedCamRng.newInstance(context = this)
 
-        NoiseBasedCamRng.reset()
-        compositeDisposable.dispose()
+            diceRollButton.setOnClickListener {
+                compositeDisposable.add(
+                    camRng.getInt(bound = 6)
+                        .map {
+                            it + 1
+                        }
+                        .subscribeOn(Schedulers.newThread())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe { diceRollOutcome ->
+                            diceRollOutcomeTextView.text = diceRollOutcome.toString()
+                        }
+                )
+            }
+        } catch (e: CameraInitializationFailedException) {
+            Toast.makeText(this, e.message, Toast.LENGTH_LONG).show()
+        }
     }
 
-    private fun onPermissionGranted() {
-        val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 500)
+    override fun onStop() {
+        super.onStop()
+        NoiseBasedCamRng.reset()
+    }
 
-        diceRollButton.setOnClickListener {
-            compositeDisposable.add(
-                camRng.getInt(bound = 6)
-                    .map {
-                        it + 1
-                    }
-                    .subscribeOn(Schedulers.newThread())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe { diceRollOutcome ->
-                        diceRollOutcomeTextView.text = diceRollOutcome.toString()
-                    }
-            )
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+        compositeDisposable.dispose()
     }
 }
 ```
