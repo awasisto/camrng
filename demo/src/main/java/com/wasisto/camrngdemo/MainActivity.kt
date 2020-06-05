@@ -29,11 +29,19 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.wasisto.camrng.CameraInitializationFailedException
 import com.wasisto.camrng.NoiseBasedCamRng
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.random.Random
 
 class MainActivity : AppCompatActivity() {
 
@@ -41,16 +49,20 @@ class MainActivity : AppCompatActivity() {
         private const val REQUEST_CAMERA_PERMISSION = 1
     }
 
-    private lateinit var compositeDisposable: CompositeDisposable
+    private var noiseBasedCamRng: NoiseBasedCamRng? = null
+
+    private var compositeDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+    }
 
-        compositeDisposable = CompositeDisposable()
+    override fun onStart() {
+        super.onStart()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            setupRng()
+            onPermissionGranted()
         } else {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA_PERMISSION)
         }
@@ -59,7 +71,7 @@ class MainActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                setupRng()
+                onPermissionGranted()
             } else {
                 finish()
             }
@@ -68,15 +80,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRng() {
-        val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 500).apply {
-            channel = NoiseBasedCamRng.Channel.RED
-            whiteningMethod = NoiseBasedCamRng.WhiteningMethod.VON_NEUMANN
-        }
+    override fun onStop() {
+        super.onStop()
+        NoiseBasedCamRng.reset()
+    }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        compositeDisposable.dispose()
+    }
+
+    private fun onPermissionGranted() {
+        try {
+            noiseBasedCamRng = NoiseBasedCamRng.newInstance(context = this)
+            setupDiceRollButton()
+            setupRandomDataStreamsViews()
+            setupSamplePixelRawNoiseGraph()
+        } catch (e: CameraInitializationFailedException) {
+            Toast.makeText(this, e.message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun setupDiceRollButton() {
         diceRollButton.setOnClickListener {
             compositeDisposable.add(
-                camRng.getInt(bound = 6)
+                noiseBasedCamRng!!.getInt(bound = 6)
                     .map {
                         it + 1
                     }
@@ -87,22 +115,11 @@ class MainActivity : AppCompatActivity() {
                     }
             )
         }
+    }
 
+    private fun setupRandomDataStreamsViews() {
         compositeDisposable.add(
-            camRng.warmedUp
-                .subscribeOn(Schedulers.newThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {
-                    if (it) {
-                        statusTextView.setText(R.string.warmed_up)
-                    } else {
-                        statusTextView.setText(R.string.warming_up)
-                    }
-                }
-        )
-
-        compositeDisposable.add(
-            camRng.getBooleans()
+            noiseBasedCamRng!!.getBooleans()
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
@@ -111,7 +128,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         compositeDisposable.add(
-            camRng.getBytes()
+            noiseBasedCamRng!!.getBytes()
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
@@ -120,7 +137,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         compositeDisposable.add(
-            camRng.getShorts()
+            noiseBasedCamRng!!.getShorts()
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
@@ -129,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         compositeDisposable.add(
-            camRng.getChars()
+            noiseBasedCamRng!!.getChars()
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
@@ -138,7 +155,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         compositeDisposable.add(
-            camRng.getInts()
+            noiseBasedCamRng!!.getInts()
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
@@ -147,7 +164,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         compositeDisposable.add(
-            camRng.getLongs()
+            noiseBasedCamRng!!.getLongs()
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
@@ -156,7 +173,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         compositeDisposable.add(
-            camRng.getFloats()
+            noiseBasedCamRng!!.getFloats()
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
@@ -165,7 +182,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         compositeDisposable.add(
-            camRng.getDoubles()
+            noiseBasedCamRng!!.getDoubles()
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
@@ -174,10 +191,63 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    private fun setupSamplePixelRawNoiseGraph() {
+        val samplePixelIndex = Random.nextInt(noiseBasedCamRng!!.pixels.size)
+        val samplePixel = noiseBasedCamRng!!.pixels[samplePixelIndex]
 
-        NoiseBasedCamRng.reset()
-        compositeDisposable.dispose()
+        samplePixelXY.text = getString(R.string.sample_pixel_xy_placeholder, samplePixel.first, samplePixel.second)
+
+        val dataSet = LineDataSet(mutableListOf(), null).apply {
+            color = ContextCompat.getColor(this@MainActivity, R.color.colorAccent)
+            setDrawCircles(false)
+            setDrawValues(false)
+        }
+
+        samplePixelRawNoiseGraph.apply {
+            data = LineData(dataSet).apply {
+                isHighlightEnabled = false
+            }
+            description = null
+            legend.isEnabled = false
+            xAxis.position = XAxis.XAxisPosition.BOTH_SIDED
+            xAxis.axisMinimum = 0f
+            xAxis.axisMaximum = 100f
+            xAxis.setDrawLabels(false)
+            xAxis.setDrawGridLines(false)
+            axisLeft.setDrawLabels(false)
+            axisLeft.setDrawGridLines(false)
+            layoutParams.height = resources.displayMetrics.widthPixels / 2 - 48
+        }
+
+        compositeDisposable.add(
+            noiseBasedCamRng!!.rawNoise
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    dataSet.addEntry(Entry(dataSet.entryCount.toFloat(), it[samplePixelIndex].toFloat()))
+
+                    var minY = 255f
+                    var maxY = 0f
+
+                    for (entry in dataSet.values) {
+                        minY = min(minY, entry.y)
+                        maxY = max(maxY, entry.y)
+
+                        if (samplePixelRawNoiseGraph.data.entryCount > 100) {
+                            entry.x--
+                        }
+                    }
+
+                    samplePixelRawNoiseGraph.axisLeft.axisMinimum = minY - 1
+                    samplePixelRawNoiseGraph.axisLeft.axisMaximum = maxY + 1
+
+                    if (samplePixelRawNoiseGraph.data.entryCount > 100) {
+                        dataSet.removeFirst()
+                    }
+
+                    samplePixelRawNoiseGraph.notifyDataSetChanged()
+                    samplePixelRawNoiseGraph.invalidate()
+                }
+        )
     }
 }

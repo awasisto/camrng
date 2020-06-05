@@ -23,10 +23,7 @@
 <resources>
     <string name="app_name">CamRNG Demo</string>
     <string name="empty">-</string>
-    <string name="rng_status">RNG Status</string>
-    <string name="warming_up">Warming up</string>
-    <string name="warmed_up">Warmed up</string>
-    <string name="random_data_stream">Random data stream</string>
+    <string name="random_data_streams">Random data streams</string>
     <string name="boolean_label">Boolean</string>
     <string name="byte_label">Byte</string>
     <string name="short_label">Short</string>
@@ -38,4 +35,6 @@
     <string name="dice_roll">Dice roll</string>
     <string name="outcome">Outcome</string>
     <string name="roll">Roll</string>
+    <string name="sample_pixel_raw_noise">Sample pixel raw noise</string>
+    <string name="sample_pixel_xy_placeholder">Pixel (%d, %d)</string>
 </resources>

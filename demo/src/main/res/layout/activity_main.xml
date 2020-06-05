@@ -21,168 +21,218 @@
   ~ SOFTWARE.
   -->
 
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="16dp"
-    android:orientation="vertical"
     android:keepScreenOn="true">
 
-    <TableLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:stretchColumns="1">
+        android:orientation="vertical">
 
-        <TableRow>
-            <TextView
-                android:layout_marginBottom="8dp"
-                android:layout_span="2"
-                android:text="@string/rng_status"
-                android:fontFamily="sans-serif-medium"
-                android:textColor="?android:textColorPrimary"
-                android:textSize="16sp"/>
-        </TableRow>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp">
 
-        <TableRow>
-            <TextView
-                android:id="@+id/statusTextView"
-                android:textColor="?android:textColorPrimary"
-                android:text="@string/empty"/>
-        </TableRow>
+            <TableLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stretchColumns="1"
+                android:layout_margin="16dp">
 
-        <TableRow>
-            <TextView
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="8dp"
-                android:layout_span="2"
-                android:text="@string/random_data_stream"
-                android:fontFamily="sans-serif-medium"
-                android:textColor="?android:textColorPrimary"
-                android:textSize="16sp"/>
-        </TableRow>
+                <TableRow>
+                    <TextView
+                        android:layout_marginBottom="8dp"
+                        android:layout_span="2"
+                        android:text="@string/random_data_streams"
+                        android:fontFamily="sans-serif-medium"
+                        android:textColor="?android:textColorPrimary"
+                        android:textSize="16sp"/>
+                </TableRow>
 
-        <TableRow>
-            <TextView
-                android:layout_marginEnd="16dp"
-                android:text="@string/boolean_label"/>
+                <TableRow>
+                    <TextView
+                        android:layout_width="72dp"
+                        android:text="@string/boolean_label"/>
 
-            <TextView
-                android:id="@+id/booleanTextView"
-                android:textColor="?android:textColorPrimary"
-                android:text="@string/empty"/>
-        </TableRow>
+                    <TextView
+                        android:id="@+id/booleanTextView"
+                        android:textColor="?android:textColorPrimary"
+                        android:text="@string/empty"/>
+                </TableRow>
 
-        <TableRow>
-            <TextView
-                android:layout_marginEnd="16dp"
-                android:text="@string/byte_label"/>
+                <TableRow>
+                    <TextView
+                        android:layout_width="72dp"
+                        android:text="@string/byte_label"/>
 
-            <TextView
-                android:id="@+id/byteTextView"
-                android:textColor="?android:textColorPrimary"
-                android:text="@string/empty"/>
-        </TableRow>
+                    <TextView
+                        android:id="@+id/byteTextView"
+                        android:textColor="?android:textColorPrimary"
+                        android:text="@string/empty"/>
+                </TableRow>
 
-        <TableRow>
-            <TextView
-                android:layout_marginEnd="16dp"
-                android:text="@string/short_label"/>
+                <TableRow>
+                    <TextView
+                        android:layout_width="72dp"
+                        android:text="@string/short_label"/>
 
-            <TextView
-                android:id="@+id/shortTextView"
-                android:textColor="?android:textColorPrimary"
-                android:text="@string/empty"/>
-        </TableRow>
+                    <TextView
+                        android:id="@+id/shortTextView"
+                        android:textColor="?android:textColorPrimary"
+                        android:text="@string/empty"/>
+                </TableRow>
 
-        <TableRow>
-            <TextView
-                android:layout_marginEnd="16dp"
-                android:text="@string/char_label"/>
+                <TableRow>
+                    <TextView
+                        android:layout_width="72dp"
+                        android:text="@string/char_label"/>
 
-            <FrameLayout>
+                    <FrameLayout>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/charTextView"
+                            android:textColor="?android:textColorPrimary"
+                            android:text="@string/empty"/>
+                    </FrameLayout>
+                </TableRow>
+
+                <TableRow>
+                    <TextView
+                        android:layout_width="72dp"
+                        android:text="@string/int_label"/>
+
+                    <TextView
+                        android:id="@+id/intTextView"
+                        android:textColor="?android:textColorPrimary"
+                        android:text="@string/empty"/>
+                </TableRow>
+
+                <TableRow>
+                    <TextView
+                        android:layout_width="72dp"
+                        android:text="@string/long_label"/>
+
+                    <TextView
+                        android:id="@+id/longTextView"
+                        android:textColor="?android:textColorPrimary"
+                        android:text="@string/empty"/>
+                </TableRow>
+
+                <TableRow>
+                    <TextView
+                        android:layout_width="72dp"
+                        android:text="@string/float_label"/>
+
+                    <TextView
+                        android:id="@+id/floatTextView"
+                        android:textColor="?android:textColorPrimary"
+                        android:text="@string/empty"/>
+                </TableRow>
+
+                <TableRow>
+                    <TextView
+                        android:layout_width="72dp"
+                        android:text="@string/double_label"/>
+
+                    <TextView
+                        android:id="@+id/doubleTextView"
+                        android:textColor="?android:textColorPrimary"
+                        android:text="@string/empty"/>
+                </TableRow>
+            </TableLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                android:orientation="vertical">
+
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:id="@+id/charTextView"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/dice_roll"
+                    android:fontFamily="sans-serif-medium"
                     android:textColor="?android:textColorPrimary"
-                    android:text="@string/empty"/>
-            </FrameLayout>
-        </TableRow>
+                    android:textSize="16sp"/>
 
-        <TableRow>
-            <TextView
-                android:layout_marginEnd="16dp"
-                android:text="@string/int_label"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
 
-            <TextView
-                android:id="@+id/intTextView"
-                android:textColor="?android:textColorPrimary"
-                android:text="@string/empty"/>
-        </TableRow>
+                    <TextView
+                        android:layout_width="72dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/outcome"/>
 
-        <TableRow>
-            <TextView
-                android:layout_marginEnd="16dp"
-                android:text="@string/long_label"/>
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:id="@+id/diceRollOutcomeTextView"
+                        android:textColor="?android:textColorPrimary"
+                        android:text="@string/empty"/>
+                </LinearLayout>
 
-            <TextView
-                android:id="@+id/longTextView"
-                android:textColor="?android:textColorPrimary"
-                android:text="@string/empty"/>
-        </TableRow>
+                <Button
+                    android:id="@+id/diceRollButton"
+                    android:layout_width="64dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:padding="0dp"
+                    android:text="@string/roll"
+                    android:textAllCaps="false"
+                    android:letterSpacing="0"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-        <TableRow>
-            <TextView
-                android:layout_marginEnd="16dp"
-                android:text="@string/float_label"/>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp">
 
-            <TextView
-                android:id="@+id/floatTextView"
-                android:textColor="?android:textColorPrimary"
-                android:text="@string/empty"/>
-        </TableRow>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_margin="16dp">
 
-        <TableRow>
-            <TextView
-                android:layout_marginEnd="16dp"
-                android:text="@string/double_label"/>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/sample_pixel_raw_noise"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="?android:textColorPrimary"
+                    android:textSize="16sp"/>
 
-            <TextView
-                android:id="@+id/doubleTextView"
-                android:textColor="?android:textColorPrimary"
-                android:text="@string/empty"/>
-        </TableRow>
+                <TextView
+                    android:id="@+id/samplePixelXY"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
 
-        <TableRow>
-            <TextView
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="8dp"
-                android:layout_span="2"
-                android:text="@string/dice_roll"
-                android:fontFamily="sans-serif-medium"
-                android:textColor="?android:textColorPrimary"
-                android:textSize="16sp"/>
-        </TableRow>
-
-        <TableRow>
-            <TextView
-                android:layout_marginEnd="16dp"
-                android:text="@string/outcome"/>
-
-            <TextView
-                android:id="@+id/diceRollOutcomeTextView"
-                android:textColor="?android:textColorPrimary"
-                android:text="@string/empty"/>
-        </TableRow>
-    </TableLayout>
-
-    <Button
-        android:id="@+id/diceRollButton"
-        android:layout_width="72dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="-3dp"
-        android:layout_marginTop="8dp"
-        android:text="@string/roll"
-        style="@style/Widget.AppCompat.Button.Colored"/>
-</LinearLayout>
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/samplePixelRawNoiseGraph"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_marginStart="-14dp"
+                    android:layout_marginEnd="-14dp"
+                    android:layout_marginBottom="-14dp"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>
