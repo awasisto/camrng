@@ -442,9 +442,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
     private var previousPixelBooleanValue: Boolean? = null
 
-    private val previousPixelsBooleanValues = mutableMapOf<Pair<Int, Int>, Boolean?>()
+    private val previousPixelsBooleanValues by lazy { mutableMapOf<Pair<Int, Int>, Boolean?>() }
 
-    private val csprng = BlumBlumShub(512)
+    private val csprng by lazy { BlumBlumShub(512) }
 
     private fun onDataUpdated() {
         val pixelsValues = mutableListOf<Int>()
