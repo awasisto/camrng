@@ -1,14 +1,14 @@
-CamRNG
-======
+![CamRNG](https://i.imgur.com/3H8NW2B.png)
+==========================================
 
-An Android library project to enable true and quantum random number generation using device camera.
+An Android library project to enable quantum random number generation using device camera.
 
 Download
 --------
 
 Download via Gradle:
 
-    implementation 'com.wasisto.camrng:camrng:0.0.2'
+    implementation 'com.wasisto.camrng:camrng:1.0.0'
 
 Usage Example
 -------------
@@ -20,13 +20,11 @@ class MyActivity : AppCompatActivity() {
         private const val REQUEST_CAMERA_PERMISSION = 1
     }
 
-    private lateinit var compositeDisposable: CompositeDisposable
+    private val compositeDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.my_activity)
-
-        compositeDisposable = CompositeDisposable()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             setupRng()
@@ -38,7 +36,7 @@ class MyActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                setupRng()
+                onPermissionGranted()
             } else {
                 finish()
             }
@@ -47,11 +45,15 @@ class MyActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRng() {
-        val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 500).apply {
-                channel = NoiseBasedCamRng.Channel.RED
-                debiasingMethod = NoiseBasedCamRng.DebiasingMethod.VON_NEUMANN
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+
+        NoiseBasedCamRng.reset()
+        compositeDisposable.dispose()
+    }
+
+    private fun onPermissionGranted() {
+        val camRng = NoiseBasedCamRng.newInstance(context = this, numberOfPixelsToUse = 500)
 
         diceRollButton.setOnClickListener {
             compositeDisposable.add(
@@ -66,13 +68,6 @@ class MyActivity : AppCompatActivity() {
                     }
             )
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-
-        NoiseBasedCamRng.reset()
-        compositeDisposable.dispose()
     }
 }
 ```

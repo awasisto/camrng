@@ -34,14 +34,14 @@ ext {
     libraryName = 'camrng'
     artifact = 'camrng'
 
-    libraryDescription = 'An Android library that enables true and quantum random number ' +
-            'generation using device camera.'
+    libraryDescription = 'An Android library that enables quantum random number generation using ' +
+            'device camera.'
 
     siteUrl = 'https://github.com/awasisto/camrng'
     gitUrl = 'https://github.com/awasisto/camrng.git'
 
-    libraryVersionCode = 2
-    libraryVersionName = '0.0.2'
+    libraryVersionCode = 3
+    libraryVersionName = '1.0.0'
 
     developerId = 'awasisto'
     developerName = 'Andika Wasisto'
