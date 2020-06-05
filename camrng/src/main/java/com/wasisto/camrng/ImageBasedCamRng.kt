@@ -92,7 +92,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
         }.looper
     )
 
-    private val messageDigest = MessageDigest.getInstance("SHA-256")
+    private val messageDigest = MessageDigest.getInstance("SHA-512")
 
     init {
         var exception: CameraInitializationFailedException? = null
