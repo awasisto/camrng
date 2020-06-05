@@ -442,7 +442,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
     private var previousPixelBooleanValue: Boolean? = null
 
-    private val previousPixelsBooleanValues by lazy { mutableMapOf<Pair<Int, Int>, Boolean?>() }
+    private val previousFramePixelsBooleanValues by lazy { mutableMapOf<Pair<Int, Int>, Boolean?>() }
 
     private val csprng by lazy { BlumBlumShub(512) }
 
@@ -476,13 +476,13 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                 }
                             }
                             WhiteningMethod.INTERFRAME_VON_NEUMANN -> {
-                                if (previousPixelsBooleanValues[pixel] == null) {
-                                    previousPixelsBooleanValues[pixel] = pixelBooleanValue
+                                if (previousFramePixelsBooleanValues[pixel] == null) {
+                                    previousFramePixelsBooleanValues[pixel] = pixelBooleanValue
                                 } else {
-                                    if (previousPixelsBooleanValues[pixel] != pixelBooleanValue) {
-                                        booleanProcessor.offer(previousPixelsBooleanValues[pixel])
+                                    if (previousFramePixelsBooleanValues[pixel] != pixelBooleanValue) {
+                                        booleanProcessor.offer(previousFramePixelsBooleanValues[pixel])
                                     }
-                                    previousPixelsBooleanValues[pixel] = null
+                                    previousFramePixelsBooleanValues[pixel] = null
                                 }
                             }
                             WhiteningMethod.XOR_WITH_A_CSPRNG -> {
