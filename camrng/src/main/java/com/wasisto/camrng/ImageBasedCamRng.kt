@@ -115,6 +115,8 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                 override fun onOpened(cameraDevice: CameraDevice) {
                     this@ImageBasedCamRng.cameraDevice = cameraDevice
 
+                    var startEmittingAt = -1L
+
                     imageReader = ImageReader.newInstance(imageSize.width, imageSize.height, ImageFormat.JPEG, 2).apply {
                         setOnImageAvailableListener(
                             { imageReader ->
@@ -130,11 +132,15 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
                                         image.close()
 
-                                        for (byte in messageDigest.digest(bytes)) {
-                                            var mask = 0b10000000
-                                            while (mask != 0) {
-                                                booleanProcessor.offer(byte.toInt() and mask != 0)
-                                                mask = mask shr 1
+                                        if (startEmittingAt == -1L) {
+                                            startEmittingAt = System.currentTimeMillis() + 3000
+                                        } else if (System.currentTimeMillis() > startEmittingAt) {
+                                            for (byte in messageDigest.digest(bytes)) {
+                                                var mask = 0b10000000
+                                                while (mask != 0) {
+                                                    booleanProcessor.offer(byte.toInt() and mask != 0)
+                                                    mask = mask shr 1
+                                                }
                                             }
                                         }
                                     }
