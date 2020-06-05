@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
 
     private var noiseBasedCamRng: NoiseBasedCamRng? = null
 
-    private var compositeDisposable = CompositeDisposable()
+    private val compositeDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
