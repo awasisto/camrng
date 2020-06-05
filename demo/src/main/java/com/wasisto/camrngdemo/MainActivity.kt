@@ -192,7 +192,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSamplePixelRawNoiseGraph() {
-        val samplePixelIndex = Random.nextInt(noiseBasedCamRng!!.pixels.size)
+        val numberOfPixels = noiseBasedCamRng!!.pixels.size
+        val samplePixelIndex = Random.nextInt(from = 0, until = numberOfPixels)
         val samplePixel = noiseBasedCamRng!!.pixels[samplePixelIndex]
 
         samplePixelXY.text = getString(R.string.sample_pixel_xy_placeholder, samplePixel.first, samplePixel.second)
