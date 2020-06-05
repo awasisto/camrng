@@ -38,7 +38,6 @@ import io.reactivex.Flowable
 import io.reactivex.processors.MulticastProcessor
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
@@ -56,6 +55,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         XOR_WITH_A_CSPRNG,
         NONE
     }
+
+    class NotEnoughUnusedPixelsException : Exception()
 
     companion object {
 
@@ -121,7 +122,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         @Synchronized
         fun newInstance(context: Context, numberOfPixels: Int = 0): NoiseBasedCamRng {
             if (cameraDevice == null) {
-                var exception: Exception? = null
+                var exception: CameraInitializationFailedException? = null
 
                 val latch = CountDownLatch(1)
 
@@ -164,41 +165,28 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                         latch.countDown()
 
                                         synchronized(NoiseBasedCamRng) {
-                                            try {
-                                                val image = imageReader.acquireNextImage()
+                                            val image = imageReader.acquireNextImage()
 
-                                                if (image != null) {
-                                                    val buffer = image.planes[0].buffer
-                                                    val bytes = ByteArray(buffer.remaining())
-                                                    buffer.get(bytes)
+                                            if (image != null) {
+                                                val buffer = image.planes[0].buffer
+                                                val bytes = ByteArray(buffer.remaining())
+                                                buffer.get(bytes)
 
-                                                    image.close()
+                                                image.close()
 
-                                                    if (isHardwareLevelFullSupported()) {
-                                                        threadPoolExecutor.execute {
-                                                            val bitmap =
-                                                                BitmapFactory.decodeByteArray(
-                                                                    bytes,
-                                                                    0,
-                                                                    bytes.size
-                                                                )
-                                                            synchronized(NoiseBasedCamRng) {
-                                                                processImage(bitmap)
-                                                            }
-                                                            bitmap.recycle()
+                                                if (isHardwareLevelFullSupported()) {
+                                                    threadPoolExecutor.execute {
+                                                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                        synchronized(NoiseBasedCamRng) {
+                                                            processImage(bitmap)
                                                         }
-                                                    } else {
-                                                        val bitmap = BitmapFactory.decodeByteArray(
-                                                            bytes,
-                                                            0,
-                                                            bytes.size
-                                                        )
-                                                        processImage(bitmap)
                                                         bitmap.recycle()
                                                     }
+                                                } else {
+                                                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                    processImage(bitmap)
+                                                    bitmap.recycle()
                                                 }
-                                            } catch (t: Throwable) {
-                                                t.printStackTrace()
                                             }
                                         }
                                     },
@@ -257,7 +245,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                             }
 
                                             override fun onCaptureFailed(session: CameraCaptureSession, request: CaptureRequest, failure: CaptureFailure) {
-                                                exception = InitializationFailedException("Capture failed. Failure reason code: ${failure.reason}")
+                                                exception = CameraInitializationFailedException("Capture failed. Failure reason code: ${failure.reason}")
                                                 latch.countDown()
                                             }
                                         }
@@ -267,7 +255,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                                     override fun onConfigureFailed(cameraCaptureSession: CameraCaptureSession) {
                                         cameraDevice.close()
-                                        exception = InitializationFailedException("Failed to configure capture session")
+                                        exception = CameraInitializationFailedException("Failed to configure capture session")
                                         latch.countDown()
                                     }
                                 },
@@ -281,7 +269,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                         override fun onError(cameraDevice: CameraDevice, error: Int) {
                             cameraDevice.close()
-                            exception = InitializationFailedException("Failed to open camera. Error code: $error")
+                            exception = CameraInitializationFailedException("Failed to open camera. Error code: $error")
                             latch.countDown()
                         }
                     },
@@ -290,9 +278,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                 latch.await()
 
-                exception?.let {
-                    throw it
-                }
+                exception?.let { throw it }
             }
 
             val pixels = mutableListOf<Pair<Int, Int>>()

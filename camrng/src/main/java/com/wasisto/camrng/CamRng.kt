@@ -308,7 +308,7 @@ abstract class CamRng {
             .buffer(bitCount)
             .map { booleans ->
                 var x = 0L
-                booleans.forEach { boolean ->
+                for (boolean in booleans) {
                     x = (x shl 1) or (if (boolean) 1 else 0)
                 }
                 when (type) {

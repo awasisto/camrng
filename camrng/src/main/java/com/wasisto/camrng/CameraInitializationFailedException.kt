@@ -22,4 +22,4 @@
 
 package com.wasisto.camrng
 
-class NotEnoughUnusedPixelsException : Exception()
+class CameraInitializationFailedException(message: String): Exception(message)

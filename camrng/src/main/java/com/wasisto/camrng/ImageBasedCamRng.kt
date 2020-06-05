@@ -34,7 +34,7 @@ import java.security.MessageDigest
 import java.util.concurrent.CountDownLatch
 
 /**
- * This class implements a simple true random number generator (TRNG) by hashing camera images.
+ * This class implements a simple true random number generator by hashing camera images.
  */
 @SuppressLint("MissingPermission")
 class ImageBasedCamRng private constructor(context: Context) : CamRng() {
@@ -63,31 +63,39 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
          */
         @Synchronized
         fun reset() {
-            instance?.cameraDevice?.close()
+            try { instance?.cameraDevice?.close() } catch (ignored: Throwable) { }
+            try { instance?.imageReader?.close() } catch (ignored: Throwable) { }
+            try { instance?.cameraCaptureSession?.close() } catch (ignored: Throwable) { }
+            instance?.cameraDevice = null
+            instance?.imageReader = null
+            instance?.cameraCaptureSession = null
+            instance?.captureCallback = null
             instance = null
         }
     }
 
-    override val booleanProcessor =
-        MulticastProcessor.create<Boolean>().apply {
+    override val booleanProcessor = MulticastProcessor.create<Boolean>().apply {
+        start()
+    }
+
+    private var cameraDevice: CameraDevice? = null
+
+    private var imageReader: ImageReader? = null
+
+    private var cameraCaptureSession: CameraCaptureSession? = null
+
+    private var captureCallback: CameraCaptureSession.CaptureCallback? = null
+
+    private val backgroundHandler = Handler(
+        HandlerThread("ImageBasedCamRngBackground").apply {
             start()
-        }
-
-    private lateinit var cameraDevice: CameraDevice
-
-    private lateinit var imageReader: ImageReader
-
-    private val backgroundHandler =
-        Handler(
-            HandlerThread("ImageBasedCamRngBackground").apply {
-                start()
-            }.looper
-        )
+        }.looper
+    )
 
     private val messageDigest = MessageDigest.getInstance("SHA-256")
 
     init {
-        var exception: Exception? = null
+        var exception: CameraInitializationFailedException? = null
 
         val latch = CountDownLatch(1)
 
@@ -107,22 +115,28 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                 override fun onOpened(cameraDevice: CameraDevice) {
                     this@ImageBasedCamRng.cameraDevice = cameraDevice
 
-                    imageReader = ImageReader.newInstance(imageSize.width, imageSize.height, ImageFormat.JPEG, 1).apply {
+                    imageReader = ImageReader.newInstance(imageSize.width, imageSize.height, ImageFormat.JPEG, 2).apply {
                         setOnImageAvailableListener(
                             { imageReader ->
-                                val image = imageReader.acquireNextImage()
+                                latch.countDown()
 
-                                val buffer = image.planes[0].buffer
-                                val bytes = ByteArray(buffer.remaining())
-                                buffer.get(bytes)
+                                synchronized(ImageBasedCamRng) {
+                                    val image = imageReader.acquireNextImage()
 
-                                image.close()
+                                    if (image != null) {
+                                        val buffer = image.planes[0].buffer
+                                        val bytes = ByteArray(buffer.remaining())
+                                        buffer.get(bytes)
 
-                                messageDigest.digest(bytes).forEach { byte ->
-                                    var mask = 0b10000000
-                                    while (mask != 0) {
-                                        booleanProcessor.offer(byte.toInt() and mask != 0)
-                                        mask = mask shr 1
+                                        image.close()
+
+                                        for (byte in messageDigest.digest(bytes)) {
+                                            var mask = 0b10000000
+                                            while (mask != 0) {
+                                                booleanProcessor.offer(byte.toInt() and mask != 0)
+                                                mask = mask shr 1
+                                            }
+                                        }
                                     }
                                 }
                             },
@@ -131,32 +145,34 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                     }
 
                     cameraDevice.createCaptureSession(
-                        listOf(imageReader.surface),
+                        listOf(imageReader!!.surface),
                         object : CameraCaptureSession.StateCallback() {
                             override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
+                                this@ImageBasedCamRng.cameraCaptureSession = cameraCaptureSession
+
+                                captureCallback = object : CameraCaptureSession.CaptureCallback() {
+                                    override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+                                        latch.countDown()
+                                    }
+
+                                    override fun onCaptureFailed(session: CameraCaptureSession, request: CaptureRequest, failure: CaptureFailure) {
+                                        exception = CameraInitializationFailedException("Capture failed. Failure reason code: ${failure.reason}")
+                                        latch.countDown()
+                                    }
+                                }
+
                                 cameraCaptureSession.setRepeatingRequest(
                                     cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
-                                        addTarget(imageReader.surface)
+                                        addTarget(imageReader!!.surface)
                                     }.build(),
-                                    object : CameraCaptureSession.CaptureCallback() {
-                                        override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
-                                            super.onCaptureCompleted(session, request, result)
-                                            latch.countDown()
-                                        }
-
-                                        override fun onCaptureFailed(session: CameraCaptureSession, request: CaptureRequest, failure: CaptureFailure) {
-                                            super.onCaptureFailed(session, request, failure)
-                                            exception = Exception("Capture failed. Failure reason code: ${failure.reason}")
-                                            latch.countDown()
-                                        }
-                                    },
+                                    captureCallback,
                                     null
                                 )
                             }
 
                             override fun onConfigureFailed(cameraCaptureSession: CameraCaptureSession) {
                                 cameraDevice.close()
-                                exception = Exception("Failed to configure capture session")
+                                exception = CameraInitializationFailedException("Failed to configure capture session")
                                 latch.countDown()
                             }
                         },
@@ -170,7 +186,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
                 override fun onError(cameraDevice: CameraDevice, error: Int) {
                     cameraDevice.close()
-                    exception = Exception("Failed to open camera. Error code: $error")
+                    exception = CameraInitializationFailedException("Failed to open camera. Error code: $error")
                     latch.countDown()
                 }
             },
@@ -179,8 +195,6 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
         latch.await()
 
-        exception?.let {
-            throw it
-        }
+        exception?.let { throw it }
     }
 }
