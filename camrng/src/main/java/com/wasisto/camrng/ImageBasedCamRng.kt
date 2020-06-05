@@ -107,7 +107,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
         val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
 
-        val imageSize = cameraCharacteristics[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).maxBy { it.width * it.height }!!
+        val imageSize = cameraCharacteristics[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).minBy { it.width * it.height }!!
 
         cameraManager.openCamera(
             cameraId,
