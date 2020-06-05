@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity() {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 onPermissionGranted()
             } else {
-                finish()
+                Toast.makeText(this, R.string.camera_permission_denied, Toast.LENGTH_LONG).show()
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)

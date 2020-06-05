@@ -37,4 +37,5 @@
     <string name="roll">Roll</string>
     <string name="sample_pixel_raw_noise">Sample pixel raw noise</string>
     <string name="sample_pixel_xy_placeholder">Pixel (%d, %d)</string>
+    <string name="camera_permission_denied">Camera permission denied</string>
 </resources>
