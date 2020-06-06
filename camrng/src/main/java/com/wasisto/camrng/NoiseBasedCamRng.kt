@@ -62,7 +62,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
     companion object {
 
         /**
-         * The minimum distance between pixels to prevent interpixel correlation.
+         * The minimum distance between pixels to prevent interpixel correlation. Default value
+         * is 100.
          */
         var minimumDistanceBetweenPixels = 100
 
