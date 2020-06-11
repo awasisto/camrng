@@ -45,6 +45,18 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
         private var instance: ImageBasedCamRng? = null
 
         /**
+         * The direction the camera faces relative to device screen. Default value is
+         * [LensFacing.BACK]
+         */
+        var lensFacing = LensFacing.BACK
+            set(value) {
+                if (instance != null) {
+                    throw IllegalStateException("ImageBasedCamRng needs to be reset before setting lensFacing")
+                }
+                field = value
+            }
+
+        /**
          * Returns a new instance of `ImageBasedCamRng`.
          *
          * @param context the context for the camera.
@@ -101,9 +113,32 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
         val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
-        val cameraId = cameraManager.cameraIdList.find {
-            cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == CameraCharacteristics.LENS_FACING_BACK
-        }!!
+        val filteredCameraIds = cameraManager.cameraIdList.filter {
+            return@filter when (lensFacing) {
+                LensFacing.BACK -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == CameraCharacteristics.LENS_FACING_BACK
+                LensFacing.FRONT -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == CameraCharacteristics.LENS_FACING_FRONT
+            }
+        }
+
+        if (filteredCameraIds.isEmpty()) {
+            throw CameraInitializationFailedException("No camera found")
+        }
+
+        val cameraId = filteredCameraIds.sortedWith(compareBy(
+            {
+                return@compareBy when (cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL]) {
+                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_3 -> 2
+                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL -> 1
+                    else -> 0
+                }
+            },
+            {
+                val maxResolution = cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!
+                    .getOutputSizes(ImageFormat.JPEG)
+                    .maxBy { resolution -> resolution.width * resolution.height }!!
+                return@compareBy maxResolution.width * maxResolution.height
+            }
+        )).last()
 
         val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
 
