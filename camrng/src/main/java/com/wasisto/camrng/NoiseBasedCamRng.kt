@@ -144,13 +144,19 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                 val filteredCameraIds = cameraManager.cameraIdList.filter {
                     return@filter when (lensFacing) {
-                        LensFacing.BACK -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == CameraCharacteristics.LENS_FACING_BACK
-                        LensFacing.FRONT -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == CameraCharacteristics.LENS_FACING_FRONT
+                        LensFacing.BACK -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 1
+                        LensFacing.FRONT -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 0
+                        LensFacing.EXTERNAL -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 2
                     }
                 }
 
                 if (filteredCameraIds.isEmpty()) {
-                    throw CameraInitializationFailedException("No camera found")
+                    val strLensFacing = when (lensFacing) {
+                        LensFacing.BACK -> "back-facing"
+                        LensFacing.FRONT -> "front-facing"
+                        LensFacing.EXTERNAL -> "external"
+                    }
+                    throw CameraInitializationFailedException("No $strLensFacing camera found")
                 }
 
                 val cameraId = filteredCameraIds.sortedWith(compareBy(
