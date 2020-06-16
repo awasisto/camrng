@@ -164,7 +164,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                                 latch.countDown()
 
                                 synchronized(ImageBasedCamRng) {
-                                    val image = imageReader.acquireNextImage()
+                                    val image = imageReader.acquireLatestImage()
 
                                     if (image != null) {
                                         val buffer = image.planes[0].buffer

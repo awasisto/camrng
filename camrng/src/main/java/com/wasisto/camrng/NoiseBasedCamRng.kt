@@ -210,7 +210,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                         latch.countDown()
 
                                         synchronized(NoiseBasedCamRng) {
-                                            val image = imageReader.acquireNextImage()
+                                            val image = imageReader.acquireLatestImage()
 
                                             if (image != null) {
                                                 val buffer = image.planes[0].buffer
