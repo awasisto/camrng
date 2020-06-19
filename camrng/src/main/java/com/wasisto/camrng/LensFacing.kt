@@ -23,5 +23,5 @@
 package com.wasisto.camrng
 
 enum class LensFacing {
-    BACK, FRONT, EXTERNAL
+    UNSPECIFIED, BACK, FRONT, EXTERNAL
 }

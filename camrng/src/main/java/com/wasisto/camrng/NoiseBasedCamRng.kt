@@ -69,9 +69,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         /**
          * The direction the camera faces relative to device screen. Default value is
-         * [LensFacing.BACK]
+         * [LensFacing.UNSPECIFIED]
          */
-        var lensFacing = LensFacing.BACK
+        var lensFacing = LensFacing.UNSPECIFIED
             set(value) {
                 if (cameraDevice != null) {
                     throw IllegalStateException("NoiseBasedCamRng needs to be reset before setting lensFacing")
@@ -144,6 +144,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                 val filteredCameraIds = cameraManager.cameraIdList.filter {
                     return@filter when (lensFacing) {
+                        LensFacing.UNSPECIFIED -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] != null
                         LensFacing.BACK -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 1
                         LensFacing.FRONT -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 0
                         LensFacing.EXTERNAL -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 2
@@ -152,11 +153,12 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                 if (filteredCameraIds.isEmpty()) {
                     val strLensFacing = when (lensFacing) {
-                        LensFacing.BACK -> "back-facing"
-                        LensFacing.FRONT -> "front-facing"
-                        LensFacing.EXTERNAL -> "external"
+                        LensFacing.UNSPECIFIED -> " "
+                        LensFacing.BACK -> "back-facing "
+                        LensFacing.FRONT -> "front-facing "
+                        LensFacing.EXTERNAL -> "external "
                     }
-                    throw CameraInitializationFailedException("No $strLensFacing camera found")
+                    throw CameraInitializationFailedException("No ${strLensFacing}camera found")
                 }
 
                 val cameraId = filteredCameraIds.sortedWith(compareBy(
