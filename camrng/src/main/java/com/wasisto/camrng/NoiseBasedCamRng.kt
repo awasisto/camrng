@@ -334,7 +334,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             while (i < numberOfPixels || numberOfPixels <= 0) {
                 var pixel: Pair<Int, Int>? = null
 
-                for (j in 0 until 100) {
+                for (j in 0 until 3) {
                     pixel = Pair(
                         Random.nextInt(1, imageSize.width / minimumDistanceBetweenPixels) * minimumDistanceBetweenPixels,
                         Random.nextInt(1, imageSize.height / minimumDistanceBetweenPixels) * minimumDistanceBetweenPixels
