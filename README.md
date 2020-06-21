@@ -3,6 +3,39 @@
 
 An Android library project enabling quantum random number generation using device camera.
 
+Setup
+-----
+
+CamRNG has two generator classes that generate random numbers using different methods.
+`NoiseBasedCamRng` generates random numbers by extracting image noises into random bits and
+`ImageBasedCamRng` generates random numbers by hashing the images taken by the camera.
+
+`NoiseBasedCamRng` can extract randomness from both shot noise and thermal noise. Shot noise or
+quantum noise is the noise that dominates the lighter parts of an image. It is caused by the
+variance of the number of photons detected by the photodiodes on the camera sensor per unit of time.
+It can be used as the source of randomness by having a setup as shown in the following illustration.
+
+![shot noise setup](https://i.imgur.com/NvJQmqn.png)
+
+Thermal noise or Johnson-Nyquist noise is the noise that dominates the black parts of an image. It
+is caused by the thermal agitation of the electrons in the camera sensor. It can be used as the
+source of randomness by blocking the camera lens as shown in the following illustration.
+
+![thermal noise setup](https://i.imgur.com/eMGqiaD.png)
+
+Unlike `NoiseBasedCamRng` that needs additional setup to work, `ImageBasedCamRng` can generate
+high-quality randomness by pointing the camera at anything at the cost of a lower bitrate. It works
+by continuously taking images and applying SHA-512 to them.
+
+NIST SP 800-22 Tests Results
+----------------------------
+
+![NoiseBasedCamRng with shot noise tests results](https://i.imgur.com/Qx78Uud.png)
+
+![NoiseBasedCamRng with thermal noise tests results](https://i.imgur.com/q2rCA9x.png)
+
+![ImageBasedCamRng tests results](https://i.imgur.com/sfC8YJH.png)
+
 Download
 --------
 
