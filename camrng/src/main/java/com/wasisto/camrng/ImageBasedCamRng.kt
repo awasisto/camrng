@@ -115,6 +115,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
         val filteredCameraIds = cameraManager.cameraIdList.filter {
             return@filter when (NoiseBasedCamRng.lensFacing) {
+                LensFacing.UNSPECIFIED -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] != null
                 LensFacing.BACK -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 1
                 LensFacing.FRONT -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 0
                 LensFacing.EXTERNAL -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 2
@@ -123,6 +124,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
         if (filteredCameraIds.isEmpty()) {
             val strLensFacing = when (NoiseBasedCamRng.lensFacing) {
+                LensFacing.UNSPECIFIED -> " "
                 LensFacing.BACK -> "back-facing"
                 LensFacing.FRONT -> "front-facing"
                 LensFacing.EXTERNAL -> "external"
