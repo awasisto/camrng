@@ -166,9 +166,9 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                                 latch.countDown()
 
                                 synchronized(ImageBasedCamRng) {
-                                    val image = imageReader.acquireLatestImage()
+                                    try {
+                                        val image = imageReader.acquireLatestImage()
 
-                                    if (image != null) {
                                         val buffer = image.planes[0].buffer
                                         val bytes = ByteArray(buffer.remaining())
                                         buffer.get(bytes)
@@ -186,6 +186,8 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                                                 }
                                             }
                                         }
+                                    } catch (t: Throwable) {
+                                        t.printStackTrace()
                                     }
                                 }
                             },
