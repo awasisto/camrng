@@ -90,6 +90,18 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
         start()
     }
 
+    /**
+     * The camera ID.
+     */
+    var cameraId: String? = null
+        private set
+
+    /**
+     * The camera characteristics.
+     */
+    var cameraCharacteristics: CameraCharacteristics? = null
+        private set
+
     private var cameraDevice: CameraDevice? = null
 
     private var imageReader: ImageReader? = null
@@ -132,7 +144,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
             throw CameraInitializationFailedException("No $strLensFacing camera found")
         }
 
-        val cameraId = filteredCameraIds.sortedWith(compareBy(
+        cameraId = filteredCameraIds.sortedWith(compareBy(
             {
                 return@compareBy when (cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL]) {
                     CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_3 -> 2
@@ -148,12 +160,12 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
             }
         )).last()
 
-        val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
+        cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId!!)
 
-        val imageSize = cameraCharacteristics[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).minBy { it.width * it.height }!!
+        val imageSize = cameraCharacteristics!![CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).minBy { it.width * it.height }!!
 
         cameraManager.openCamera(
-            cameraId,
+            cameraId!!,
             object : CameraDevice.StateCallback() {
                 override fun onOpened(cameraDevice: CameraDevice) {
                     this@ImageBasedCamRng.cameraDevice = cameraDevice
