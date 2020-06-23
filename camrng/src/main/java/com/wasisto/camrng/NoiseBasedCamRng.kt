@@ -27,12 +27,14 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
+import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Range
 import android.util.Size
+import android.view.Surface
 import com.modp.random.BlumBlumShub
 import io.reactivex.Flowable
 import io.reactivex.processors.MulticastProcessor
@@ -40,7 +42,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import kotlin.math.min
 import kotlin.random.Random
-
 
 /**
  * This class implements a quantum random number generator (QRNG) based on camera noise.
@@ -53,7 +54,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
     enum class WhiteningMethod {
         INTERPIXEL_VON_NEUMANN,
         INTERFRAME_VON_NEUMANN,
-        XOR_WITH_A_CSPRNG,
+        XOR_WITH_CSPRNG,
         NONE
     }
 
@@ -66,6 +67,19 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
          * is 100.
          */
         var minimumDistanceBetweenPixels = 100
+            set(value) {
+                require(value > 1) { "minimumDistanceBetweenPixels must be greater than one" }
+                field = value
+            }
+
+        /**
+         * Maximum attempts to find an unused pixel. Default value is 10.
+         */
+        var maximumUnusedPixelFindingAttempts = 10
+            set(value) {
+                require(value > 0) { "minimumDistanceBetweenPixels must be positive" }
+                field = value
+            }
 
         /**
          * The direction the camera faces relative to device screen. Default value is
@@ -78,6 +92,35 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                 }
                 field = value
             }
+
+        /**
+         * Use RAW format if possible instead of JPEG. Default value is true.
+         */
+        var useRawIfPossible = true
+            set(value) {
+                if (cameraDevice != null) {
+                    throw IllegalStateException("NoiseBasedCamRng needs to be reset before setting useRawIfPossible")
+                }
+                field = value
+            }
+
+        /**
+         * The camera ID.
+         */
+        var cameraId: String? = null
+            private set
+
+        /**
+         * The camera characteristics.
+         */
+        var cameraCharacteristics: CameraCharacteristics? = null
+            private set
+
+        /**
+         * The image size.
+         */
+        var imageSize: Size? = null
+            private set
 
         @Volatile
         private var instances = mutableListOf<NoiseBasedCamRng>()
@@ -92,11 +135,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         private var captureCallback: CameraCaptureSession.CaptureCallback? = null
 
-        private lateinit var cameraCharacteristics: CameraCharacteristics
+        private var rawSupported: Boolean? = null
 
-        private lateinit var imageSize: Size
-
-        private var hardwareLevel: Int? = null
+        private var colorFilterArrangement: Int? = null
 
         private var exposureTimeRange: Range<Long>? = null
 
@@ -122,7 +163,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         private val threadPoolExecutor = Executors.newCachedThreadPool()
 
-        private val pixelsGreenValues = mutableMapOf<Pair<Int, Int>, MutableList<Int>>()
+        private val pixelsGreenValues = mutableMapOf<Pair<Int, Int>, MutableList<Double>>()
+
+        private val surfaceTextures = mutableSetOf<SurfaceTexture>()
 
         /**
          * Returns a new instance of `NoiseBasedCamRng`. If `numberOfPixels` is less than or equal
@@ -161,12 +204,15 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                     throw CameraInitializationFailedException("No ${strLensFacing}camera found")
                 }
 
-                val cameraId = filteredCameraIds.sortedWith(compareBy(
+                cameraId = filteredCameraIds.sortedWith(compareBy(
                     {
-                        return@compareBy when (cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL]) {
-                            CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_3 -> 2
-                            CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL -> 1
-                            else -> 0
+                        return@compareBy cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_MANUAL_SENSOR)
+                    },
+                    {
+                        if (useRawIfPossible) {
+                            return@compareBy cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW)
+                        } else {
+                            return@compareBy 0
                         }
                     },
                     {
@@ -177,63 +223,89 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                     }
                 )).last()
 
-                cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
+                cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId!!)
 
-                hardwareLevel = cameraCharacteristics[CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL]
+                rawSupported = cameraCharacteristics!![CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW)
 
-                imageSize = cameraCharacteristics[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).maxBy { it.width * it.height }!!
+                colorFilterArrangement = cameraCharacteristics!![CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT]
+
+                val imageFormat = if (rawSupported!! && useRawIfPossible) ImageFormat.RAW_SENSOR else ImageFormat.JPEG
+
+                imageSize = cameraCharacteristics!![CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(imageFormat).maxBy { it.width * it.height }!!
 
                 aePixels += Pair(100, 100)
-                aePixels += Pair(100 + (imageSize.width - 200) * 1 / 4, 100 + (imageSize.height - 200) * 1 / 4)
-                aePixels += Pair(100 + (imageSize.width - 200) * 2 / 4, 100 + (imageSize.height - 200) * 2 / 4)
-                aePixels += Pair(100 + (imageSize.width - 200) * 3 / 4, 100 + (imageSize.height - 200) * 3 / 4)
-                aePixels += Pair(imageSize.width - 100, imageSize.height - 100)
+                aePixels += Pair(100 + (imageSize!!.width - 200) * 1 / 4, 100 + (imageSize!!.height - 200) * 1 / 4)
+                aePixels += Pair(100 + (imageSize!!.width - 200) * 2 / 4, 100 + (imageSize!!.height - 200) * 2 / 4)
+                aePixels += Pair(100 + (imageSize!!.width - 200) * 3 / 4, 100 + (imageSize!!.height - 200) * 3 / 4)
+                aePixels += Pair(imageSize!!.width - 100, imageSize!!.height - 100)
 
-                isoSensitivityRange = cameraCharacteristics[CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE]
-                exposureTimeRange = cameraCharacteristics[CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE]
+                isoSensitivityRange = cameraCharacteristics!![CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE]
+                exposureTimeRange = cameraCharacteristics!![CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE]
                 if (exposureTimeRange != null) {
                     exposureTimeRange = Range.create(exposureTimeRange!!.lower, min(exposureTimeRange!!.upper, 50000000L))
                 } else {
-                    exposureCompensationRange = cameraCharacteristics[CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE]
+                    exposureCompensationRange = cameraCharacteristics!![CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE]
                     if (exposureCompensationRange!!.lower == exposureCompensationRange!!.upper) {
                         exposureCompensationRange = null
                     }
                 }
 
                 cameraManager.openCamera(
-                    cameraId,
+                    cameraId!!,
                     object : CameraDevice.StateCallback() {
                         override fun onOpened(cameraDevice: CameraDevice) {
                             this@Companion.cameraDevice = cameraDevice
 
-                            imageReader = ImageReader.newInstance(imageSize.width, imageSize.height, ImageFormat.JPEG, 2).apply {
+                            imageReader = ImageReader.newInstance(imageSize!!.width, imageSize!!.height, imageFormat, 2).apply {
                                 setOnImageAvailableListener(
                                     { imageReader ->
                                         latch.countDown()
 
                                         synchronized(NoiseBasedCamRng) {
-                                            val image = imageReader.acquireLatestImage()
+                                            try {
+                                                val image = imageReader.acquireLatestImage()
 
-                                            if (image != null) {
-                                                val buffer = image.planes[0].buffer
-                                                val bytes = ByteArray(buffer.remaining())
-                                                buffer.get(bytes)
+                                                when (image.format) {
+                                                    ImageFormat.RAW_SENSOR -> {
+                                                        val buffer = image.planes[0].buffer.asShortBuffer()
+                                                        val shortArray = ShortArray(buffer.remaining())
+                                                        buffer.get(shortArray)
 
-                                                image.close()
+                                                        val rowStridePx = image.planes[0].rowStride / 2
 
-                                                if (isHardwareLevelFullSupported()) {
-                                                    threadPoolExecutor.execute {
-                                                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                                        synchronized(NoiseBasedCamRng) {
-                                                            processImage(bitmap)
-                                                        }
-                                                        bitmap.recycle()
+                                                        image.close()
+
+                                                        processRaw(shortArray, rowStridePx)
                                                     }
-                                                } else {
-                                                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                                    processImage(bitmap)
-                                                    bitmap.recycle()
+                                                    ImageFormat.JPEG -> {
+                                                        val buffer = image.planes[0].buffer
+                                                        val bytes = ByteArray(buffer.remaining())
+                                                        buffer.get(bytes)
+
+                                                        image.close()
+
+                                                        val hardwareLevel = cameraCharacteristics!![CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL]
+                                                        if (hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL || hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL) {
+                                                            threadPoolExecutor.execute {
+                                                                try {
+                                                                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                                    synchronized(NoiseBasedCamRng) {
+                                                                        processBitmap(bitmap)
+                                                                    }
+                                                                    bitmap.recycle()
+                                                                } catch (t: Throwable) {
+                                                                    t.printStackTrace()
+                                                                }
+                                                            }
+                                                        } else {
+                                                            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                            processBitmap(bitmap)
+                                                            bitmap.recycle()
+                                                        }
+                                                    }
                                                 }
+                                            } catch (t: Throwable) {
+                                                t.printStackTrace()
                                             }
                                         }
                                     },
@@ -241,16 +313,26 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                 )
                             }
 
+                            val surfaces = mutableListOf(imageReader!!.surface)
+                            val surfaceSize = cameraCharacteristics!![CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(SurfaceTexture::class.java).maxBy { it.width * it.height }!!
+                            for (surfaceTexture in surfaceTextures) {
+                                surfaceTexture.setDefaultBufferSize(surfaceSize.width, surfaceSize.height)
+                                surfaces.add(Surface(surfaceTexture))
+                            }
+
                             cameraDevice.createCaptureSession(
-                                listOf(imageReader!!.surface),
+                                surfaces,
                                 object : CameraCaptureSession.StateCallback() {
                                     override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
                                         this@Companion.cameraCaptureSession = cameraCaptureSession
 
-                                        val templateType = if (isHardwareLevelFullSupported()) CameraDevice.TEMPLATE_MANUAL else CameraDevice.TEMPLATE_PREVIEW
+                                        val manualSensorSupported = cameraCharacteristics!![CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_MANUAL_SENSOR)
+                                        val templateType = if (manualSensorSupported) CameraDevice.TEMPLATE_MANUAL else CameraDevice.TEMPLATE_PREVIEW
 
                                         captureRequestBuilder = cameraDevice.createCaptureRequest(templateType).apply {
-                                            addTarget(imageReader!!.surface)
+                                            for (surface in surfaces) {
+                                                addTarget(surface)
+                                            }
 
                                             set(CaptureRequest.COLOR_CORRECTION_ABERRATION_MODE, CaptureRequest.COLOR_CORRECTION_ABERRATION_MODE_OFF)
                                             set(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE, CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_OFF)
@@ -330,14 +412,16 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
             val pixels = mutableListOf<Pair<Int, Int>>()
 
+            val minDistance = if (minimumDistanceBetweenPixels == 1 && rawSupported!! && useRawIfPossible) 2 else minimumDistanceBetweenPixels
+
             var i = 0
             while (i < numberOfPixels || numberOfPixels <= 0) {
                 var pixel: Pair<Int, Int>? = null
 
-                for (j in 0 until 3) {
+                for (j in 0 until maximumUnusedPixelFindingAttempts) {
                     pixel = Pair(
-                        Random.nextInt(1, imageSize.width / minimumDistanceBetweenPixels) * minimumDistanceBetweenPixels,
-                        Random.nextInt(1, imageSize.height / minimumDistanceBetweenPixels) * minimumDistanceBetweenPixels
+                        Random.nextInt(1, (imageSize!!.width - 1) / minDistance) * minDistance,
+                        Random.nextInt(1, (imageSize!!.height - 1) / minDistance) * minDistance
                     )
 
                     if (pixels.contains(pixel) || pixelsGreenValues.containsKey(pixel)) {
@@ -370,13 +454,33 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         }
 
         /**
+         * Adds SurfaceTexture(s)
+         */
+        fun addSurfaceTextures(vararg surfaceTexture: SurfaceTexture) {
+            if (cameraDevice != null) {
+                throw IllegalStateException("NoiseBasedCamRng needs to be reset before adding SurfaceTexture(s)")
+            }
+            surfaceTextures.addAll(surfaceTexture)
+        }
+
+        /**
+         * Removes SurfaceTexture(s)
+         */
+        fun removeSurfaceTextures(vararg surfaceTexture: SurfaceTexture) {
+            if (cameraDevice != null) {
+                throw IllegalStateException("NoiseBasedCamRng needs to be reset before removing SurfaceTexture(s)")
+            }
+            surfaceTextures.removeAll(surfaceTexture)
+        }
+
+        /**
          * Resets the generator and frees resources.
          */
         @Synchronized
         fun reset() {
-            try { cameraDevice?.close() } catch (ignored: Throwable) { }
-            try { imageReader?.close() } catch (ignored: Throwable) { }
-            try { cameraCaptureSession?.close() } catch (ignored: Throwable) { }
+            try { cameraDevice?.close() } catch (t: Throwable) { t.printStackTrace() }
+            try { imageReader?.close() } catch (t: Throwable) { t.printStackTrace() }
+            try { cameraCaptureSession?.close() } catch (t: Throwable) { t.printStackTrace() }
             cameraDevice = null
             imageReader = null
             cameraCaptureSession = null
@@ -386,21 +490,22 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             lastTimeExposureAdjusted = -1L
         }
 
-        private fun isHardwareLevelFullSupported(): Boolean {
-            return hardwareLevel == 1 || hardwareLevel == 3
-        }
-
-        private fun processImage(bitmap: Bitmap) {
+        private fun processBitmap(bitmap: Bitmap) {
             if (lastTimeExposureAdjusted == -1L) {
                 lastTimeExposureAdjusted = System.currentTimeMillis()
             } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 3000) {
                 for (pixel in pixelsGreenValues.keys) {
                     val rgb = bitmap.getPixel(pixel.first, pixel.second)
-                    pixelsGreenValues[pixel]!! += rgb shr 8 and 0xff
+                    pixelsGreenValues[pixel]!! += (rgb shr 8 and 0xff) / 255.0
                 }
 
-                val exposureAdjusted = adjustExposureIfNecessary(bitmap)
+                val aePixelsGreenValues = mutableListOf<Double>()
 
+                for (pixel in aePixels) {
+                    aePixelsGreenValues += (bitmap.getPixel(pixel.first, pixel.second) shr 8 and 0xff) / 255.0
+                }
+
+                val exposureAdjusted = adjustExposureIfNecessary(aePixelsGreenValues.average())
                 if (exposureAdjusted) {
                     for (values in pixelsGreenValues.values) {
                         values.clear()
@@ -420,18 +525,44 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             }
         }
 
-        private fun adjustExposureIfNecessary(bitmap: Bitmap): Boolean {
-            val aePixelsGreenValues = mutableListOf<Int>()
+        private fun processRaw(shortArray: ShortArray, rowStridePx: Int) {
+            if (lastTimeExposureAdjusted == -1L) {
+                lastTimeExposureAdjusted = System.currentTimeMillis()
+            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 3000) {
+                for (pixel in pixelsGreenValues.keys) {
+                    pixelsGreenValues[pixel]!! += getNearestGreenPixelValueFromRawData(shortArray, rowStridePx, pixel.first, pixel.second) / 1023.0
+                }
 
-            for (pixel in aePixels) {
-                aePixelsGreenValues += bitmap.getPixel(pixel.first, pixel.second) shr 8 and 0xff
+                val aePixelsGreenValues = mutableListOf<Double>()
+
+                for (pixel in aePixels) {
+                    aePixelsGreenValues += getNearestGreenPixelValueFromRawData(shortArray, rowStridePx, pixel.first, pixel.second) / 1023.0
+                }
+
+                val exposureAdjusted = adjustExposureIfNecessary(aePixelsGreenValues.average())
+                if (exposureAdjusted) {
+                    for (values in pixelsGreenValues.values) {
+                        values.clear()
+                    }
+                    lastTimeExposureAdjusted = System.currentTimeMillis()
+                }
+
+                for (i in instances.indices) {
+                    instances[i].onDataUpdated()
+                }
+
+                if (pixelsGreenValues.isNotEmpty() && pixelsGreenValues[pixelsGreenValues.keys.first()]!!.size >= 2) {
+                    for (pixelGreenValues in pixelsGreenValues.values) {
+                        pixelGreenValues.clear()
+                    }
+                }
             }
+        }
 
-            val aePixelsGreenValuesAverage = aePixelsGreenValues.average()
-
+        private fun adjustExposureIfNecessary(aePixelsGreenValuesAverage: Double): Boolean {
             var exposureAdjusted = false
 
-            if (aePixelsGreenValuesAverage < 64) {
+            if (aePixelsGreenValuesAverage < 0.25) {
                 if (isoSensitivityRange != null && currentIsoSensitivity!! < isoSensitivityRange!!.upper) {
                     currentIsoSensitivity = if (currentIsoSensitivity!! * 2 > isoSensitivityRange!!.upper) isoSensitivityRange!!.upper else currentIsoSensitivity!! * 2
                     captureRequestBuilder?.set(CaptureRequest.SENSOR_SENSITIVITY, currentIsoSensitivity)
@@ -445,7 +576,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                     captureRequestBuilder?.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, currentExposureCompensation)
                     exposureAdjusted = true
                 }
-            } else if (aePixelsGreenValuesAverage > 192) {
+            } else if (aePixelsGreenValuesAverage >  0.75) {
                 if (exposureTimeRange != null && currentExposureTime!! > exposureTimeRange!!.lower) {
                     currentExposureTime = if (currentExposureTime!! / 2 < exposureTimeRange!!.lower) exposureTimeRange!!.lower else currentExposureTime!! / 2
                     captureRequestBuilder?.set(CaptureRequest.SENSOR_EXPOSURE_TIME, currentExposureTime)
@@ -468,6 +599,26 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
             return false
         }
+
+        private fun getNearestGreenPixelValueFromRawData(shortArray: ShortArray, rowStridePx: Int, x: Int, y: Int): Short {
+            when (colorFilterArrangement) {
+                CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB, CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_BGGR ->
+                    return if (y % 2 == 0 && x % 2 == 1 || y % 2 == 1 && x % 2 == 0) {
+                        shortArray[y * rowStridePx + x]
+                    } else {
+                        shortArray[y * rowStridePx + x + 1]
+                    }
+                CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG, CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG ->
+                    return if (y % 2 == 0 && x % 2 == 0 || y % 2 == 1 && x % 2 == 1) {
+                        shortArray[y * rowStridePx + x]
+                    } else {
+                        shortArray[y * rowStridePx + x + 1]
+                    }
+                else -> {
+                    return shortArray[y * rowStridePx + x]
+                }
+            }
+        }
     }
 
     override val booleanProcessor = MulticastProcessor.create<Boolean>((1.5 * pixels.size).toInt()).apply {
@@ -480,9 +631,10 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
     var whiteningMethod = WhiteningMethod.INTERPIXEL_VON_NEUMANN
 
     /**
-     * A `Flowable` that emits the raw values of the pixels.
+     * A `Flowable` that emits the raw values (brightness) of the pixels with the range of 0.0
+     * to 1.0.
      */
-    val rawNoise: Flowable<List<Int>> = MulticastProcessor.create<List<Int>>().apply {
+    val rawNoise: Flowable<List<Double>> = MulticastProcessor.create<List<Double>>().apply {
         start()
     }
 
@@ -493,7 +645,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
     private val csprng by lazy { BlumBlumShub(512) }
 
     private fun onDataUpdated() {
-        val pixelsValues = mutableListOf<Int>()
+        val pixelsValues = mutableListOf<Double>()
 
         if (pixelsGreenValues[pixels.first()]!!.size > 0) {
             for (pixel in pixels) {
@@ -531,7 +683,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                     previousFramePixelsBooleanValues[pixel] = null
                                 }
                             }
-                            WhiteningMethod.XOR_WITH_A_CSPRNG -> {
+                            WhiteningMethod.XOR_WITH_CSPRNG -> {
                                 booleanProcessor.offer(pixelBooleanValue xor (csprng.next(1) == 1))
                             }
                             WhiteningMethod.NONE -> {

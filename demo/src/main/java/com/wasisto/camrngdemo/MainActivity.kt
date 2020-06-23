@@ -192,8 +192,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSamplePixelRawNoiseGraph() {
-        val numberOfPixels = noiseBasedCamRng!!.pixels.size
-        val samplePixelIndex = Random.nextInt(from = 0, until = numberOfPixels)
+        val samplePixelIndex = Random.nextInt(from = 0, until = noiseBasedCamRng!!.pixels.size)
         val samplePixel = noiseBasedCamRng!!.pixels[samplePixelIndex]
 
         samplePixelXY.text = getString(R.string.sample_pixel_xy_placeholder, samplePixel.first, samplePixel.second)
@@ -227,8 +226,8 @@ class MainActivity : AppCompatActivity() {
                 .subscribe {
                     dataSet.addEntry(Entry(dataSet.entryCount.toFloat(), it[samplePixelIndex].toFloat()))
 
-                    var minY = 255f
-                    var maxY = 0f
+                    var minY = 1.0f
+                    var maxY = 0.0f
 
                     for (entry in dataSet.values) {
                         minY = min(minY, entry.y)
@@ -239,8 +238,8 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
-                    samplePixelRawNoiseGraph.axisLeft.axisMinimum = minY - 1
-                    samplePixelRawNoiseGraph.axisLeft.axisMaximum = maxY + 1
+                    samplePixelRawNoiseGraph.axisLeft.axisMinimum = minY - 0.01f
+                    samplePixelRawNoiseGraph.axisLeft.axisMaximum = maxY + 0.01f
 
                     if (samplePixelRawNoiseGraph.data.entryCount > 100) {
                         dataSet.removeFirst()
