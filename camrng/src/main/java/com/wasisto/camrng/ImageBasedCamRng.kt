@@ -29,6 +29,7 @@ import android.hardware.camera2.*
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Size
 import io.reactivex.processors.MulticastProcessor
 import java.security.MessageDigest
 import java.util.concurrent.CountDownLatch
@@ -102,6 +103,12 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
     var cameraCharacteristics: CameraCharacteristics? = null
         private set
 
+    /**
+     * The image size.
+     */
+    var imageSize: Size? = null
+        private set
+
     private var cameraDevice: CameraDevice? = null
 
     private var imageReader: ImageReader? = null
@@ -162,7 +169,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
         cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId!!)
 
-        val imageSize = cameraCharacteristics!![CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).minBy { it.width * it.height }!!
+        imageSize = cameraCharacteristics!![CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).minBy { it.width * it.height }!!
 
         cameraManager.openCamera(
             cameraId!!,
@@ -172,7 +179,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
                     var startEmittingAt = -1L
 
-                    imageReader = ImageReader.newInstance(imageSize.width, imageSize.height, ImageFormat.JPEG, 2).apply {
+                    imageReader = ImageReader.newInstance(imageSize!!.width, imageSize!!.height, ImageFormat.JPEG, 2).apply {
                         setOnImageAvailableListener(
                             { imageReader ->
                                 latch.countDown()
