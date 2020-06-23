@@ -25,11 +25,13 @@ package com.wasisto.camrng
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.ImageFormat
+import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Size
+import android.view.Surface
 import io.reactivex.processors.MulticastProcessor
 import java.security.MessageDigest
 import java.util.concurrent.CountDownLatch
@@ -44,6 +46,8 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
         @Volatile
         private var instance: ImageBasedCamRng? = null
+
+        private val surfaceTextures = mutableSetOf<SurfaceTexture>()
 
         /**
          * The direction the camera faces relative to device screen. Default value is
@@ -69,6 +73,26 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
             return instance ?: ImageBasedCamRng(context.applicationContext).also {
                 instance = it
             }
+        }
+
+        /**
+         * Adds SurfaceTexture(s)
+         */
+        fun addSurfaceTextures(vararg surfaceTexture: SurfaceTexture) {
+            if (instance != null) {
+                throw IllegalStateException("ImageBasedCamRng needs to be reset before adding SurfaceTexture(s)")
+            }
+            surfaceTextures.addAll(surfaceTexture)
+        }
+
+        /**
+         * Removes SurfaceTexture(s)
+         */
+        fun removeSurfaceTextures(vararg surfaceTexture: SurfaceTexture) {
+            if (instance != null) {
+                throw IllegalStateException("ImageBasedCamRng needs to be reset before removing SurfaceTexture(s)")
+            }
+            surfaceTextures.removeAll(surfaceTexture)
         }
 
         /**
@@ -214,8 +238,15 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                         )
                     }
 
+                    val surfaces = mutableListOf(imageReader!!.surface)
+                    val surfaceSize = cameraCharacteristics!![CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(SurfaceTexture::class.java).minBy { it.width * it.height }!!
+                    for (surfaceTexture in surfaceTextures) {
+                        surfaceTexture.setDefaultBufferSize(surfaceSize.width, surfaceSize.height)
+                        surfaces.add(Surface(surfaceTexture))
+                    }
+
                     cameraDevice.createCaptureSession(
-                        listOf(imageReader!!.surface),
+                        surfaces,
                         object : CameraCaptureSession.StateCallback() {
                             override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
                                 this@ImageBasedCamRng.cameraCaptureSession = cameraCaptureSession
@@ -233,7 +264,9 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
                                 cameraCaptureSession.setRepeatingRequest(
                                     cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
-                                        addTarget(imageReader!!.surface)
+                                        for (surface in surfaces) {
+                                            addTarget(surface)
+                                        }
                                     }.build(),
                                     captureCallback,
                                     null
