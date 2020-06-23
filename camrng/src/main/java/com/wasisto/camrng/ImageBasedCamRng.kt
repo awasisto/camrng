@@ -175,21 +175,12 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
             throw CameraInitializationFailedException("No $strLensFacing camera found")
         }
 
-        cameraId = filteredCameraIds.sortedWith(compareBy(
-            {
-                return@compareBy when (cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL]) {
-                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_3 -> 2
-                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL -> 1
-                    else -> 0
-                }
-            },
-            {
-                val maxResolution = cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!
-                    .getOutputSizes(ImageFormat.JPEG)
-                    .maxBy { resolution -> resolution.width * resolution.height }!!
-                return@compareBy maxResolution.width * maxResolution.height
-            }
-        )).last()
+        cameraId = filteredCameraIds.sortedWith(compareBy {
+            val maxResolution = cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!
+                .getOutputSizes(ImageFormat.JPEG)
+                .maxBy { resolution -> resolution.width * resolution.height }!!
+            return@compareBy maxResolution.width * maxResolution.height
+        }).last()
 
         cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId!!)
 
