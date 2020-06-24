@@ -6,7 +6,7 @@ An Android library project enabling quantum random number generation using devic
 Setup
 -----
 
-CamRNG has two generator classes that generate random numbers using different methods.
+CamRNG provides two types of generators that generate random numbers using different methods.
 `NoiseBasedCamRng` generates random numbers by extracting image noises into random bits and
 `ImageBasedCamRng` generates random numbers by hashing the images taken by the camera.
 
@@ -15,17 +15,17 @@ quantum noise is the noise that dominates the lighter parts of an image. It is c
 variance of the number of photons detected by the photodiodes on the camera sensor per unit of time.
 It can be used as the source of randomness by having a setup as shown in the following illustration.
 
-![shot noise setup](https://i.imgur.com/NvJQmqn.png)
+![shot noise setup](https://i.imgur.com/5ZjEeBl.png)
 
 Thermal noise or Johnson-Nyquist noise is the noise that dominates the black parts of an image. It
 is caused by the thermal agitation of the electrons in the camera sensor. It can be used as the
 source of randomness by blocking the camera lens as shown in the following illustration.
 
-![thermal noise setup](https://i.imgur.com/eMGqiaD.png)
+![thermal noise setup](https://i.imgur.com/98fitAW.png)
 
-Unlike `NoiseBasedCamRng` that needs additional setup to work, `ImageBasedCamRng` can generate
-high-quality randomness by pointing the camera at anything at the cost of a lower bitrate. It works
-by continuously taking images and applying SHA-512 to them.
+`ImageBasedCamRng` generates random numbers by continuously taking images and applying SHA-512 to
+them. Unlike `NoiseBasedCamRng` that needs additional setup to work, `ImageBasedCamRng` can generate
+high-quality randomness by pointing the camera at anything at the cost of a lower bitrate.
 
 NIST SP 800-22 Tests Results
 ----------------------------
