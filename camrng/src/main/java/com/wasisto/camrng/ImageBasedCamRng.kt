@@ -100,9 +100,9 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
          */
         @Synchronized
         fun reset() {
-            try { instance?.cameraDevice?.close() } catch (ignored: Throwable) { }
-            try { instance?.imageReader?.close() } catch (ignored: Throwable) { }
-            try { instance?.cameraCaptureSession?.close() } catch (ignored: Throwable) { }
+            try { instance?.cameraDevice?.close() } catch (t: Throwable) { t.printStackTrace() }
+            try { instance?.imageReader?.close() } catch (t: Throwable) { t.printStackTrace() }
+            try { instance?.cameraCaptureSession?.close() } catch (t: Throwable) { t.printStackTrace() }
             instance?.cameraDevice = null
             instance?.imageReader = null
             instance?.cameraCaptureSession = null
