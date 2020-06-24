@@ -3,8 +3,8 @@
 
 An Android library project enabling quantum random number generation using device camera.
 
-Setup
------
+Description
+-----------
 
 CamRNG provides two types of generators that generate random numbers using different methods.
 `NoiseBasedCamRng` generates random numbers by extracting image noises into random bits and
@@ -43,78 +43,10 @@ Download via Gradle:
 
     implementation 'com.wasisto.camrng:camrng:1.0.1'
 
-Usage Example
--------------
+Usage
+-----
 
-```kotlin
-class MyActivity : AppCompatActivity() {
-
-    companion object {
-        private const val REQUEST_CAMERA_PERMISSION = 1
-    }
-
-    private val compositeDisposable = CompositeDisposable()
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.my_activity)
-    }
-
-    override fun onStart() {
-        super.onStart()
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            onPermissionGranted()
-        } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA_PERMISSION)
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (grantResults.size == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                onPermissionGranted()
-            } else {
-                Toast.makeText(this, "Camera permission denied", Toast.LENGTH_LONG).show()
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        }
-    }
-
-    private fun onPermissionGranted() {
-        try {
-            val camRng = NoiseBasedCamRng.newInstance(context = this)
-
-            diceRollButton.setOnClickListener {
-                compositeDisposable.add(
-                    camRng.getInt(bound = 6)
-                        .map {
-                            it + 1
-                        }
-                        .subscribeOn(Schedulers.newThread())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe { diceRollOutcome ->
-                            diceRollOutcomeTextView.text = diceRollOutcome.toString()
-                        }
-                )
-            }
-        } catch (e: CameraInitializationFailedException) {
-            Toast.makeText(this, e.message, Toast.LENGTH_LONG).show()
-        }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        NoiseBasedCamRng.reset()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        compositeDisposable.dispose()
-    }
-}
-```
+Visit [CamRNG Wiki](https://github.com/awasisto/camrng/wiki)
 
 License
 -------
