@@ -75,9 +75,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         /**
          * Maximum attempts to find an unused pixel. Default value is 10.
          */
-        var maximumUnusedPixelFindingAttempts = 10
+        var maximumPixelFindingAttempts = 10
             set(value) {
-                require(value > 0) { "minimumDistanceBetweenPixels must be positive" }
+                require(value > 0) { "maximumPixelFindingAttempts must be positive" }
                 field = value
             }
 
@@ -418,7 +418,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             while (i < numberOfPixels || numberOfPixels <= 0) {
                 var pixel: Pair<Int, Int>? = null
 
-                for (j in 0 until maximumUnusedPixelFindingAttempts) {
+                for (j in 0 until maximumPixelFindingAttempts) {
                     pixel = Pair(
                         Random.nextInt(1, (imageSize!!.width - 1) / minDistance) * minDistance,
                         Random.nextInt(1, (imageSize!!.height - 1) / minDistance) * minDistance
