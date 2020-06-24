@@ -192,8 +192,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSamplePixelRawNoiseGraph() {
-        val samplePixelIndex = Random.nextInt(from = 0, until = noiseBasedCamRng!!.pixels.size)
-        val samplePixel = noiseBasedCamRng!!.pixels[samplePixelIndex]
+        val samplePixel = noiseBasedCamRng!!.pixels[0]
 
         samplePixelXY.text = getString(R.string.sample_pixel_xy_placeholder, samplePixel.first, samplePixel.second)
 
@@ -224,7 +223,7 @@ class MainActivity : AppCompatActivity() {
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
-                    dataSet.addEntry(Entry(dataSet.entryCount.toFloat(), it[samplePixelIndex].toFloat()))
+                    dataSet.addEntry(Entry(dataSet.entryCount.toFloat(), it[0].toFloat()))
 
                     var minY = 1.0f
                     var maxY = 0.0f

@@ -39,8 +39,8 @@ ext {
     siteUrl = 'https://github.com/awasisto/camrng'
     gitUrl = 'https://github.com/awasisto/camrng.git'
 
-    libraryVersionCode = 5
-    libraryVersionName = '2.0.0'
+    libraryVersionCode = 6
+    libraryVersionName = '2.0.1'
 
     developerId = 'awasisto'
     developerName = 'Andika Wasisto'

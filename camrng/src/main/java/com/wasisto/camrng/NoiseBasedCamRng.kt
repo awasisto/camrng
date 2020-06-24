@@ -216,10 +216,10 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                         }
                     },
                     {
-                        val maxResolution = cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!
+                        val maxImageSize = cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!
                             .getOutputSizes(ImageFormat.JPEG)
-                            .maxBy { resolution -> resolution.width * resolution.height }!!
-                        return@compareBy maxResolution.width * maxResolution.height
+                            .maxBy { size -> size.width * size.height }!!
+                        return@compareBy maxImageSize.width * maxImageSize.height
                     }
                 )).last()
 

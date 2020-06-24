@@ -100,9 +100,9 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
          */
         @Synchronized
         fun reset() {
-            try { instance?.cameraDevice?.close() } catch (ignored: Throwable) { }
-            try { instance?.imageReader?.close() } catch (ignored: Throwable) { }
-            try { instance?.cameraCaptureSession?.close() } catch (ignored: Throwable) { }
+            try { instance?.cameraDevice?.close() } catch (t: Throwable) { t.printStackTrace() }
+            try { instance?.imageReader?.close() } catch (t: Throwable) { t.printStackTrace() }
+            try { instance?.cameraCaptureSession?.close() } catch (t: Throwable) { t.printStackTrace() }
             instance?.cameraDevice = null
             instance?.imageReader = null
             instance?.cameraCaptureSession = null
@@ -176,10 +176,10 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
         }
 
         cameraId = filteredCameraIds.sortedWith(compareBy {
-            val maxResolution = cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!
+            val maxImageSize = cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!
                 .getOutputSizes(ImageFormat.JPEG)
-                .maxBy { resolution -> resolution.width * resolution.height }!!
-            return@compareBy maxResolution.width * maxResolution.height
+                .maxBy { size -> size.width * size.height }!!
+            return@compareBy maxImageSize.width * maxImageSize.height
         }).last()
 
         cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId!!)
