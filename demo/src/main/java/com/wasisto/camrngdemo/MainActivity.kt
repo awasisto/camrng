@@ -236,8 +236,8 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
-                    samplePixelRawNoiseGraph.axisLeft.axisMinimum = minY - 0.01f
-                    samplePixelRawNoiseGraph.axisLeft.axisMaximum = maxY + 0.01f
+                    samplePixelRawNoiseGraph.axisLeft.axisMinimum = minY - 1e-3f
+                    samplePixelRawNoiseGraph.axisLeft.axisMaximum = maxY + 1e-3f
 
                     if (samplePixelRawNoiseGraph.data.entryCount > 100) {
                         dataSet.removeFirst()
