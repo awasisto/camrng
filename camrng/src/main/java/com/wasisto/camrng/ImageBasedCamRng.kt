@@ -111,9 +111,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
         }
     }
 
-    override val booleanProcessor = MulticastProcessor.create<Boolean>().apply {
-        start()
-    }
+    override val booleanProcessor = MulticastProcessor.create<Boolean>().apply { start() }
 
     /**
      * The camera ID.
@@ -184,7 +182,15 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
         cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId!!)
 
-        imageSize = cameraCharacteristics!![CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(ImageFormat.JPEG).minBy { it.width * it.height }!!
+        val hardwareLevel = cameraCharacteristics!![CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL]
+
+        val imageFormat = if (hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL || hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL) {
+            ImageFormat.JPEG
+        } else {
+            ImageFormat.YUV_420_888
+        }
+
+        imageSize = cameraCharacteristics!![CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(imageFormat).minBy { it.width * it.height }!!
 
         cameraManager.openCamera(
             cameraId!!,
@@ -194,7 +200,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
 
                     var startEmittingAt = -1L
 
-                    imageReader = ImageReader.newInstance(imageSize!!.width, imageSize!!.height, ImageFormat.JPEG, 2).apply {
+                    imageReader = ImageReader.newInstance(imageSize!!.width, imageSize!!.height, imageFormat, 2).apply {
                         setOnImageAvailableListener(
                             { imageReader ->
                                 latch.countDown()
@@ -203,23 +209,20 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                                     try {
                                         val image = imageReader.acquireLatestImage()
 
-                                        val buffer = image.planes[0].buffer
-                                        val bytes = ByteArray(buffer.remaining())
-                                        buffer.get(bytes)
-
-                                        image.close()
-
                                         if (startEmittingAt == -1L) {
                                             startEmittingAt = System.currentTimeMillis() + 3000
                                         } else if (System.currentTimeMillis() > startEmittingAt) {
-                                            for (byte in messageDigest.digest(bytes)) {
-                                                var mask = 0b10000000
+                                            messageDigest.update(image.planes[0].buffer)
+                                            for (byte in messageDigest.digest()) {
+                                                var mask = 0x80
                                                 while (mask != 0) {
                                                     booleanProcessor.offer(byte.toInt() and mask != 0)
                                                     mask = mask shr 1
                                                 }
                                             }
                                         }
+
+                                        image.close()
                                     } catch (t: Throwable) {
                                         t.printStackTrace()
                                     }
