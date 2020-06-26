@@ -41,7 +41,6 @@ import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.random.Random
 
 class MainActivity : AppCompatActivity() {
 
@@ -92,7 +91,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onPermissionGranted() {
         try {
-            noiseBasedCamRng = NoiseBasedCamRng.newInstance(context = this)
+            noiseBasedCamRng = NoiseBasedCamRng.newInstance(this)
             setupDiceRollButton()
             setupRandomDataStreamsViews()
             setupSamplePixelRawNoiseGraph()
