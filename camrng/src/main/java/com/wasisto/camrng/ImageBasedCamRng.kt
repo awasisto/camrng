@@ -267,7 +267,8 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                                                 null
                                             )
                                         } catch (t: Throwable) {
-                                            throw CameraInitializationFailedException(t)
+                                            exception = CameraInitializationFailedException(t)
+                                            latch.countDown()
                                         }
                                     }
 
@@ -284,7 +285,8 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                                 null
                             )
                         } catch (t: Throwable) {
-                            throw CameraInitializationFailedException(t)
+                            exception = CameraInitializationFailedException(t)
+                            latch.countDown()
                         }
                     }
 
