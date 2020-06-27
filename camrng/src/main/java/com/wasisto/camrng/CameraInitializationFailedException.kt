@@ -22,4 +22,11 @@
 
 package com.wasisto.camrng
 
-class CameraInitializationFailedException(message: String): Exception(message)
+import kotlin.Exception
+
+class CameraInitializationFailedException : Exception {
+
+    constructor(message: String?) : super(message)
+
+    constructor(cause: Throwable?) : super(cause)
+}
