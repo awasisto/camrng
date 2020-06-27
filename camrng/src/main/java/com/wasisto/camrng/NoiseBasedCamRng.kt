@@ -169,8 +169,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
          */
         @Synchronized
         fun newInstance(context: Context, numberOfPixels: Int = 0): NoiseBasedCamRng {
-            try {
-                if (cameraDevice == null) {
+            if (cameraDevice == null) {
+                try {
                     var exception: CameraInitializationFailedException? = null
 
                     val latch = CountDownLatch(1)
@@ -368,6 +368,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                                     cameraCaptureSession.setRepeatingRequest(captureRequestBuilder!!.build(), captureCallback, null)
                                                 } catch (t: Throwable) {
                                                     exception = CameraInitializationFailedException(t)
+                                                    latch.countDown()
                                                 }
                                             }
 
@@ -385,6 +386,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                     )
                                 } catch (t: Throwable) {
                                     exception = CameraInitializationFailedException(t)
+                                    latch.countDown()
                                 }
                             }
 
@@ -412,50 +414,50 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                     latch.await()
 
                     exception?.let { throw it }
+                } catch (t: Throwable) {
+                    throw CameraInitializationFailedException(t)
                 }
-
-                val pixels = mutableListOf<Pair<Int, Int>>()
-
-                val minDistance = if (minimumDistanceBetweenPixels == 1 && rawCaptureSupported!!) 2 else minimumDistanceBetweenPixels
-
-                var i = 0
-                while (i < numberOfPixels || numberOfPixels <= 0) {
-                    var pixel: Pair<Int, Int>? = null
-
-                    for (j in 0 until maximumPixelFindingAttempts) {
-                        pixel = Pair(
-                            Random.nextInt(1, (imageSize!!.width - 1) / minDistance) * minDistance,
-                            Random.nextInt(1, (imageSize!!.height - 1) / minDistance) * minDistance
-                        )
-
-                        if (pixels.contains(pixel) || pixelsValues.containsKey(pixel)) {
-                            pixel = null
-                        } else {
-                            break
-                        }
-                    }
-
-                    if (pixel != null) {
-                        pixels.add(pixel)
-                    } else {
-                        if (numberOfPixels <= 0) {
-                            break
-                        } else {
-                            throw NotEnoughUnusedPixelsException()
-                        }
-                    }
-
-                    i++
-                }
-
-                for (pixel in pixels) {
-                    pixelsValues[pixel] = mutableListOf()
-                }
-
-                return NoiseBasedCamRng(pixels).also { instance -> instances.add(instance) }
-            } catch (t: Throwable) {
-                throw CameraInitializationFailedException(t)
             }
+
+            val pixels = mutableListOf<Pair<Int, Int>>()
+
+            val minDistance = if (minimumDistanceBetweenPixels == 1 && rawCaptureSupported!!) 2 else minimumDistanceBetweenPixels
+
+            var i = 0
+            while (i < numberOfPixels || numberOfPixels <= 0) {
+                var pixel: Pair<Int, Int>? = null
+
+                for (j in 0 until maximumPixelFindingAttempts) {
+                    pixel = Pair(
+                        Random.nextInt(1, (imageSize!!.width - 1) / minDistance) * minDistance,
+                        Random.nextInt(1, (imageSize!!.height - 1) / minDistance) * minDistance
+                    )
+
+                    if (pixels.contains(pixel) || pixelsValues.containsKey(pixel)) {
+                        pixel = null
+                    } else {
+                        break
+                    }
+                }
+
+                if (pixel != null) {
+                    pixels.add(pixel)
+                } else {
+                    if (numberOfPixels <= 0) {
+                        break
+                    } else {
+                        throw NotEnoughUnusedPixelsException()
+                    }
+                }
+
+                i++
+            }
+
+            for (pixel in pixels) {
+                pixelsValues[pixel] = mutableListOf()
+            }
+
+            return NoiseBasedCamRng(pixels).also { instance -> instances.add(instance) }
         }
 
         /**
