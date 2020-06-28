@@ -24,8 +24,6 @@ package com.wasisto.camrng
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
@@ -41,7 +39,6 @@ import io.reactivex.processors.MulticastProcessor
 import java.nio.ByteBuffer
 import java.nio.ShortBuffer
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
 import kotlin.math.min
 import kotlin.random.Random
 
@@ -152,8 +149,6 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             }.looper
         )
 
-        private val threadPoolExecutor = Executors.newCachedThreadPool()
-
         private val pixelsValues = mutableMapOf<Pair<Int, Int>, MutableList<Double>>()
 
         private val surfaceTextures = mutableSetOf<SurfaceTexture>()
@@ -217,15 +212,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                     colorFilterArrangement = cameraCharacteristics!![CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT]
 
-                    val hardwareLevel = cameraCharacteristics!![CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL]
-
-                    val imageFormat = if (rawCaptureSupported!!) {
-                        ImageFormat.RAW_SENSOR
-                    } else if (hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL || hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL) {
-                        ImageFormat.JPEG
-                    } else {
-                        ImageFormat.YUV_420_888
-                    }
+                    val imageFormat = if (rawCaptureSupported!!) ImageFormat.RAW_SENSOR else ImageFormat.YUV_420_888
 
                     imageSize = cameraCharacteristics!![CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(imageFormat).maxBy { it.width * it.height }!!
 
@@ -266,25 +253,6 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                                             ImageFormat.RAW_SENSOR -> {
                                                                 processRaw(image.planes[0].buffer.asShortBuffer(), image.planes[0].rowStride / 2)
                                                                 image.close()
-                                                            }
-                                                            ImageFormat.JPEG -> {
-                                                                val jpegByteBuffer = image.planes[0].buffer
-                                                                val jpegByteArray = ByteArray(jpegByteBuffer.remaining())
-                                                                jpegByteBuffer.get(jpegByteArray)
-
-                                                                image.close()
-
-                                                                threadPoolExecutor.execute {
-                                                                    try {
-                                                                        val bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.size)
-                                                                        synchronized(NoiseBasedCamRng) {
-                                                                            processBitmap(bitmap)
-                                                                        }
-                                                                        bitmap.recycle()
-                                                                    } catch (t: Throwable) {
-                                                                        t.printStackTrace()
-                                                                    }
-                                                                }
                                                             }
                                                             ImageFormat.YUV_420_888 -> {
                                                                 processYuvYPlane(image.planes[0].buffer, image.planes[0].rowStride)
@@ -511,40 +479,6 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                 for (pixel in aePixels) {
                     aePixelsValues += getNearestGreenPixelValue(bayerPatternShortBuffer, rowStridePx, pixel.first, pixel.second) / 1023.0
-                }
-
-                val exposureAdjusted = adjustExposureIfNecessary(aePixelsValues.average())
-                if (exposureAdjusted) {
-                    for (values in pixelsValues.values) {
-                        values.clear()
-                    }
-                    lastTimeExposureAdjusted = System.currentTimeMillis()
-                }
-
-                for (i in instances.indices) {
-                    instances[i].onDataUpdated()
-                }
-
-                if (pixelsValues.isNotEmpty() && pixelsValues[pixelsValues.keys.first()]!!.size >= 2) {
-                    for (pixelValues in pixelsValues.values) {
-                        pixelValues.clear()
-                    }
-                }
-            }
-        }
-
-        private fun processBitmap(bitmap: Bitmap) {
-            if (lastTimeExposureAdjusted == -1L) {
-                lastTimeExposureAdjusted = System.currentTimeMillis()
-            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 3000) {
-                for (pixel in pixelsValues.keys) {
-                    pixelsValues[pixel]!! += (bitmap.getPixel(pixel.first, pixel.second) shr 8 and 0xff) / 255.0
-                }
-
-                val aePixelsValues = mutableListOf<Double>()
-
-                for (pixel in aePixels) {
-                    aePixelsValues += (bitmap.getPixel(pixel.first, pixel.second) shr 8 and 0xff) / 255.0
                 }
 
                 val exposureAdjusted = adjustExposureIfNecessary(aePixelsValues.average())
