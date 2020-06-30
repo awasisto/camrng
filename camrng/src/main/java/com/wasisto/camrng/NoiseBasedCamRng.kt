@@ -51,8 +51,8 @@ import kotlin.random.Random
 class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : CamRng() {
 
     enum class WhiteningMethod {
-        INTERPIXEL_VON_NEUMANN,
-        INTERFRAME_VON_NEUMANN,
+        VON_NEUMANN,
+        INTERPIXEL_XOR,
         XOR_WITH_CSPRNG,
         NONE
     }
@@ -600,9 +600,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
     override val booleanProcessor = MulticastProcessor.create<Boolean>((1.5 * pixels.size).toInt()).apply { start() }
 
     /**
-     * The whitening method. Default value is [WhiteningMethod.INTERPIXEL_VON_NEUMANN].
+     * The whitening method. Default value is [WhiteningMethod.VON_NEUMANN].
      */
-    var whiteningMethod = WhiteningMethod.INTERPIXEL_VON_NEUMANN
+    var whiteningMethod = WhiteningMethod.VON_NEUMANN
 
     /**
      * A `Flowable` that emits the brightnesses of the pixels ordered according to
@@ -610,11 +610,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
      */
     val rawNoise: Flowable<List<Double>> = MulticastProcessor.create<List<Double>>().apply { start() }
 
-    private var previousPixelBooleanValue: Boolean? = null
+    private val previousPixelsBooleanValues = mutableListOf<Boolean>()
 
-    private val previousFramePixelsBooleanValues = mutableMapOf<Pair<Int, Int>, Boolean?>()
-
-    private val csprng by lazy { BlumBlumShub(512) }
+    private val csprng = BlumBlumShub(512)
 
     private fun onDataUpdated() {
         val values = mutableListOf<Double>()
@@ -627,7 +625,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                     val pixelValue1 = pixelsValues[pixel]!![0]
                     val pixelValue2 = pixelsValues[pixel]!![1]
 
-                    val pixelBooleanValue = when {
+                    var pixelBooleanValue = when {
                         pixelValue1 < pixelValue2 -> true
                         pixelValue1 > pixelValue2 -> false
                         else -> null
@@ -635,24 +633,25 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                     if (pixelBooleanValue != null) {
                         when (whiteningMethod) {
-                            WhiteningMethod.INTERPIXEL_VON_NEUMANN -> {
-                                if (previousPixelBooleanValue == null) {
-                                    previousPixelBooleanValue = pixelBooleanValue
+                            WhiteningMethod.VON_NEUMANN -> {
+                                if (previousPixelsBooleanValues.size < 1) {
+                                    previousPixelsBooleanValues += pixelBooleanValue
                                 } else {
-                                    if (previousPixelBooleanValue != pixelBooleanValue) {
-                                        booleanProcessor.offer(previousPixelBooleanValue)
+                                    if (previousPixelsBooleanValues[0] != pixelBooleanValue) {
+                                        booleanProcessor.offer(previousPixelsBooleanValues[0])
                                     }
-                                    previousPixelBooleanValue = null
+                                    previousPixelsBooleanValues.clear()
                                 }
                             }
-                            WhiteningMethod.INTERFRAME_VON_NEUMANN -> {
-                                if (previousFramePixelsBooleanValues[pixel] == null) {
-                                    previousFramePixelsBooleanValues[pixel] = pixelBooleanValue
+                            WhiteningMethod.INTERPIXEL_XOR -> {
+                                if (previousPixelsBooleanValues.size < 2) {
+                                    previousPixelsBooleanValues += pixelBooleanValue
                                 } else {
-                                    if (previousFramePixelsBooleanValues[pixel] != pixelBooleanValue) {
-                                        booleanProcessor.offer(previousFramePixelsBooleanValues[pixel])
+                                    for (previousPixelBooleanValue in previousPixelsBooleanValues) {
+                                        pixelBooleanValue = pixelBooleanValue!! xor previousPixelBooleanValue
                                     }
-                                    previousFramePixelsBooleanValues[pixel] = null
+                                    booleanProcessor.offer(pixelBooleanValue)
+                                    previousPixelsBooleanValues.clear()
                                 }
                             }
                             WhiteningMethod.XOR_WITH_CSPRNG -> {
