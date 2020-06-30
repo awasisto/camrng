@@ -41,7 +41,7 @@ Download
 
 Download via Gradle:
 
-    implementation 'com.wasisto.camrng:camrng:3.0.1'
+    implementation 'com.wasisto.camrng:camrng:4.0.0'
 
 Usage
 -----
