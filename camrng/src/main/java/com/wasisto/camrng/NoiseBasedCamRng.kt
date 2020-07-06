@@ -225,7 +225,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                     isoSensitivityRange = cameraCharacteristics!![CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE]
                     exposureTimeRange = cameraCharacteristics!![CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE]
                     if (exposureTimeRange != null) {
-                        exposureTimeRange = Range.create(exposureTimeRange!!.lower, min(exposureTimeRange!!.upper, 50000000L))
+                        exposureTimeRange = Range.create(exposureTimeRange!!.lower, min(exposureTimeRange!!.upper, 10000000L))
                     } else {
                         exposureCompensationRange = cameraCharacteristics!![CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE]
                         if (exposureCompensationRange!!.lower == exposureCompensationRange!!.upper) {
@@ -246,9 +246,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                                                 try {
                                                     latch.countDown()
 
-                                                    synchronized(NoiseBasedCamRng) {
-                                                        val image = imageReader.acquireLatestImage()
+                                                    val image = imageReader.acquireLatestImage()
 
+                                                    synchronized(NoiseBasedCamRng) {
                                                         when (image.format) {
                                                             ImageFormat.RAW_SENSOR -> {
                                                                 processRaw(image.planes[0].buffer.asShortBuffer(), image.planes[0].rowStride / 2)
