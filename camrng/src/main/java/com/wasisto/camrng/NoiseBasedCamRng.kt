@@ -531,7 +531,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         private fun processRaw(bayerPatternShortBuffer: ShortBuffer, rowStridePx: Int) {
             if (lastTimeExposureAdjusted == -1L) {
                 lastTimeExposureAdjusted = System.currentTimeMillis()
-            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 3000) {
+            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 1000) {
                 for (pixel in pixelsValues.keys) {
                     pixelsValues[pixel]!! += getNearestGreenPixelValue(bayerPatternShortBuffer, rowStridePx, pixel.first, pixel.second) / 1023.0
                 }
@@ -565,7 +565,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         private fun processYuvYPlane(yPlaneByteBuffer: ByteBuffer, rowStridePx: Int) {
             if (lastTimeExposureAdjusted == -1L) {
                 lastTimeExposureAdjusted = System.currentTimeMillis()
-            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 3000) {
+            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 1000) {
                 for (pixel in pixelsValues.keys) {
                     pixelsValues[pixel]!! += (yPlaneByteBuffer[pixel.second * rowStridePx + pixel.first].toInt() and 0xff) / 255.0
                 }
