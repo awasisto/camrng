@@ -210,7 +210,7 @@ class ImageBasedCamRng private constructor(context: Context) : CamRng() {
                                                 val image = imageReader.acquireLatestImage()
 
                                                 if (startEmittingAt == -1L) {
-                                                    startEmittingAt = System.currentTimeMillis() + 3000
+                                                    startEmittingAt = System.currentTimeMillis() + 1000
                                                 } else if (System.currentTimeMillis() > startEmittingAt) {
                                                     messageDigest.update(image.planes[0].buffer)
                                                     for (byte in messageDigest.digest()) {

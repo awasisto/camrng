@@ -153,6 +153,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         private val surfaceTextures = mutableSetOf<SurfaceTexture>()
 
+        private var random = Random(seed = 42)
+
         /**
          * Returns a new instance of `NoiseBasedCamRng`. If `numberOfPixels` is less than or equal
          * to zero, the maximum number of pixels will be used.
@@ -172,39 +174,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                     val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
-                    val filteredCameraIds = cameraManager.cameraIdList.filter {
-                        return@filter when (lensFacing) {
-                            LensFacing.UNSPECIFIED -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] != null
-                            LensFacing.BACK -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 1
-                            LensFacing.FRONT -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 0
-                            LensFacing.EXTERNAL -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 2
-                        }
-                    }
-
-                    if (filteredCameraIds.isEmpty()) {
-                        val strLensFacing = when (lensFacing) {
-                            LensFacing.UNSPECIFIED -> " "
-                            LensFacing.BACK -> "back-facing "
-                            LensFacing.FRONT -> "front-facing "
-                            LensFacing.EXTERNAL -> "external "
-                        }
-                        throw CameraInitializationFailedException("No ${strLensFacing}camera found")
-                    }
-
-                    cameraId = filteredCameraIds.sortedWith(compareBy(
-                        {
-                            return@compareBy cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_MANUAL_SENSOR)
-                        },
-                        {
-                            return@compareBy cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW)
-                        },
-                        {
-                            val maxImageSize = cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!
-                                .getOutputSizes(ImageFormat.JPEG)
-                                .maxBy { size -> size.width * size.height }!!
-                            return@compareBy maxImageSize.width * maxImageSize.height
-                        }
-                    )).last()
+                    cameraId = getBestCameraId(cameraManager)
 
                     cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId!!)
 
@@ -399,8 +369,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                 for (j in 0 until maximumPixelFindingAttempts) {
                     pixel = Pair(
-                        Random.nextInt(1, (imageSize!!.width - 1) / minDistance) * minDistance,
-                        Random.nextInt(1, (imageSize!!.height - 1) / minDistance) * minDistance
+                        random.nextInt(1, (imageSize!!.width - 1) / minDistance) * minDistance,
+                        random.nextInt(1, (imageSize!!.height - 1) / minDistance) * minDistance
                     )
 
                     if (pixels.contains(pixel) || pixelsValues.containsKey(pixel)) {
@@ -431,7 +401,59 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         }
 
         /**
+         * Returns the maximum number of usable pixels.
+         *
+         * @param context the context for the camera.
+         *
+         * @return the maximum number of usable pixels.
+         */
+        fun getMaximumNumberOfUsablePixels(context: Context): Int {
+            val random = Random(seed = 42)
+
+            val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val cameraId = getBestCameraId(cameraManager)
+            val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
+            val rawCaptureSupported = cameraCharacteristics[CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW)
+            val imageFormat = if (rawCaptureSupported) ImageFormat.RAW_SENSOR else ImageFormat.YUV_420_888
+            val imageSize = cameraCharacteristics[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(imageFormat).maxBy { it.width * it.height }!!
+
+            val pixels = mutableListOf<Pair<Int, Int>>()
+
+            val minDistance = if (minimumDistanceBetweenPixels == 1 && rawCaptureSupported) 2 else minimumDistanceBetweenPixels
+
+            var i = 0
+            while (true) {
+                var pixel: Pair<Int, Int>? = null
+
+                for (j in 0 until maximumPixelFindingAttempts) {
+                    pixel = Pair(
+                        random.nextInt(1, (imageSize.width - 1) / minDistance) * minDistance,
+                        random.nextInt(1, (imageSize.height - 1) / minDistance) * minDistance
+                    )
+
+                    if (pixels.contains(pixel)) {
+                        pixel = null
+                    } else {
+                        break
+                    }
+                }
+
+                if (pixel != null) {
+                    pixels.add(pixel)
+                } else {
+                    break
+                }
+
+                i++
+            }
+
+            return pixels.size
+        }
+
+        /**
          * Adds SurfaceTexture(s)
+         *
+         * @param surfaceTexture the SurfaceTexture(s) to add.
          */
         fun addSurfaceTextures(vararg surfaceTexture: SurfaceTexture) {
             if (cameraDevice != null) {
@@ -442,6 +464,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         /**
          * Removes SurfaceTexture(s)
+         *
+         * @param surfaceTexture the SurfaceTexture(s) to remove.
          */
         fun removeSurfaceTextures(vararg surfaceTexture: SurfaceTexture) {
             if (cameraDevice != null) {
@@ -465,12 +489,49 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             instances.clear()
             pixelsValues.clear()
             lastTimeExposureAdjusted = -1L
+            random = Random(seed = 42)
+        }
+
+        private fun getBestCameraId(cameraManager: CameraManager): String {
+            val filteredCameraIds = cameraManager.cameraIdList.filter {
+                return@filter when (lensFacing) {
+                    LensFacing.UNSPECIFIED -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] != null
+                    LensFacing.BACK -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 1
+                    LensFacing.FRONT -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 0
+                    LensFacing.EXTERNAL -> cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.LENS_FACING] == 2
+                }
+            }
+
+            if (filteredCameraIds.isEmpty()) {
+                val strLensFacing = when (lensFacing) {
+                    LensFacing.UNSPECIFIED -> " "
+                    LensFacing.BACK -> "back-facing "
+                    LensFacing.FRONT -> "front-facing "
+                    LensFacing.EXTERNAL -> "external "
+                }
+                throw CameraInitializationFailedException("No ${strLensFacing}camera found")
+            }
+
+            return filteredCameraIds.sortedWith(compareBy(
+                {
+                    return@compareBy cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_MANUAL_SENSOR)
+                },
+                {
+                    return@compareBy cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW)
+                },
+                {
+                    val maxImageSize = cameraManager.getCameraCharacteristics(it)[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!
+                        .getOutputSizes(ImageFormat.JPEG)
+                        .maxBy { size -> size.width * size.height }!!
+                    return@compareBy maxImageSize.width * maxImageSize.height
+                }
+            )).last()
         }
 
         private fun processRaw(bayerPatternShortBuffer: ShortBuffer, rowStridePx: Int) {
             if (lastTimeExposureAdjusted == -1L) {
                 lastTimeExposureAdjusted = System.currentTimeMillis()
-            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 3000) {
+            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 1000) {
                 for (pixel in pixelsValues.keys) {
                     pixelsValues[pixel]!! += getNearestGreenPixelValue(bayerPatternShortBuffer, rowStridePx, pixel.first, pixel.second) / 1023.0
                 }
@@ -504,7 +565,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         private fun processYuvYPlane(yPlaneByteBuffer: ByteBuffer, rowStridePx: Int) {
             if (lastTimeExposureAdjusted == -1L) {
                 lastTimeExposureAdjusted = System.currentTimeMillis()
-            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 3000) {
+            } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 1000) {
                 for (pixel in pixelsValues.keys) {
                     pixelsValues[pixel]!! += (yPlaneByteBuffer[pixel.second * rowStridePx + pixel.first].toInt() and 0xff) / 255.0
                 }
