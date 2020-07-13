@@ -452,6 +452,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         /**
          * Adds SurfaceTexture(s)
+         *
+         * @param surfaceTexture the SurfaceTexture(s) to add.
          */
         fun addSurfaceTextures(vararg surfaceTexture: SurfaceTexture) {
             if (cameraDevice != null) {
@@ -462,6 +464,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         /**
          * Removes SurfaceTexture(s)
+         *
+         * @param surfaceTexture the SurfaceTexture(s) to remove.
          */
         fun removeSurfaceTextures(vararg surfaceTexture: SurfaceTexture) {
             if (cameraDevice != null) {
