@@ -153,6 +153,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         private val surfaceTextures = mutableSetOf<SurfaceTexture>()
 
+        private var random = Random(0)
+
         /**
          * Returns a new instance of `NoiseBasedCamRng`. If `numberOfPixels` is less than or equal
          * to zero, the maximum number of pixels will be used.
@@ -399,8 +401,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
                 for (j in 0 until maximumPixelFindingAttempts) {
                     pixel = Pair(
-                        Random.nextInt(1, (imageSize!!.width - 1) / minDistance) * minDistance,
-                        Random.nextInt(1, (imageSize!!.height - 1) / minDistance) * minDistance
+                        random.nextInt(1, (imageSize!!.width - 1) / minDistance) * minDistance,
+                        random.nextInt(1, (imageSize!!.height - 1) / minDistance) * minDistance
                     )
 
                     if (pixels.contains(pixel) || pixelsValues.containsKey(pixel)) {
@@ -465,6 +467,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             instances.clear()
             pixelsValues.clear()
             lastTimeExposureAdjusted = -1L
+            random = Random(0)
         }
 
         private fun processRaw(bayerPatternShortBuffer: ShortBuffer, rowStridePx: Int) {
