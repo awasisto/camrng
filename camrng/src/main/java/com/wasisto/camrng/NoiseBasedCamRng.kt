@@ -409,6 +409,10 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             return usablePixels
         }
 
+        fun getNumberOfPixelsInUse(): Int {
+            return pixelsValues.size
+        }
+
         /**
          * Adds SurfaceTexture(s)
          *
