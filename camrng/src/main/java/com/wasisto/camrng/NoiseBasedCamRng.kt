@@ -148,7 +148,7 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         /**
          * Returns a new instance of `NoiseBasedCamRng`. If `numberOfPixels` is less than or equal
-         * to zero, `min(getMaximumNumberOfUsablePixels(Context), 10000)` of pixels will be used.
+         * to zero, `min(getMaximumNumberOfUsablePixels(Context), 10000)` pixels will be used.
          *
          * @param context the context for the camera.
          * @param numberOfPixels the number of pixels to use.
@@ -383,11 +383,11 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
         }
 
         /**
-         * Returns the maximum number of usable pixels.
+         * Returns the camera's maximum number of usable pixels.
          *
          * @param context the context for the camera.
          *
-         * @return the maximum number of usable pixels.
+         * @return the camera's maximum number of usable pixels.
          */
         fun getMaximumNumberOfUsablePixels(context: Context): Int {
             val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -409,6 +409,11 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             return usablePixels
         }
 
+        /**
+         * Returns the number of pixels in use.
+         *
+         * @return the number of pixels in use.
+         */
         fun getNumberOfPixelsInUse(): Int {
             return pixelsValues.size
         }
