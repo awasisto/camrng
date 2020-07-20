@@ -63,20 +63,11 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         /**
          * The minimum distance between pixels to prevent interpixel correlation. Default value
-         * is 100.
+         * is 30.
          */
-        var minimumDistanceBetweenPixels = 100
+        var minimumDistanceBetweenPixels = 30
             set(value) {
                 require(value > 1) { "minimumDistanceBetweenPixels must be greater than one" }
-                field = value
-            }
-
-        /**
-         * Maximum attempts to find an unused pixel. Default value is 10.
-         */
-        var maximumPixelFindingAttempts = 10
-            set(value) {
-                require(value > 0) { "maximumPixelFindingAttempts must be positive" }
                 field = value
             }
 
@@ -149,15 +140,15 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             }.looper
         )
 
+        private val unusedPixels = mutableListOf<Pair<Int, Int>>()
+
         private val pixelsValues = mutableMapOf<Pair<Int, Int>, MutableList<Double>>()
 
         private val surfaceTextures = mutableSetOf<SurfaceTexture>()
 
-        private var random = Random(seed = 42)
-
         /**
          * Returns a new instance of `NoiseBasedCamRng`. If `numberOfPixels` is less than or equal
-         * to zero, the maximum number of pixels will be used.
+         * to zero, `min(getMaximumNumberOfUsablePixels(Context), 10000)` of pixels will be used.
          *
          * @param context the context for the camera.
          * @param numberOfPixels the number of pixels to use.
@@ -359,38 +350,29 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                 }
             }
 
+            if (unusedPixels.isEmpty()) {
+                val stepSize = if (minimumDistanceBetweenPixels == 1 && rawCaptureSupported!!) 2 else minimumDistanceBetweenPixels
+                for (y in 100 until imageSize!!.height - 100 step stepSize) {
+                    for (x in 100 until imageSize!!.width - 100 step stepSize) {
+                        unusedPixels += Pair(x, y)
+                    }
+                }
+                unusedPixels.shuffle(Random(seed = 42))
+            }
+
             val pixels = mutableListOf<Pair<Int, Int>>()
 
-            val minDistance = if (minimumDistanceBetweenPixels == 1 && rawCaptureSupported!!) 2 else minimumDistanceBetweenPixels
-
-            var i = 0
-            while (i < numberOfPixels || numberOfPixels <= 0) {
-                var pixel: Pair<Int, Int>? = null
-
-                for (j in 0 until maximumPixelFindingAttempts) {
-                    pixel = Pair(
-                        random.nextInt(1, (imageSize!!.width - 1) / minDistance) * minDistance,
-                        random.nextInt(1, (imageSize!!.height - 1) / minDistance) * minDistance
-                    )
-
-                    if (pixels.contains(pixel) || pixelsValues.containsKey(pixel)) {
-                        pixel = null
-                    } else {
-                        break
-                    }
+            if (numberOfPixels > unusedPixels.size) {
+                throw NotEnoughUnusedPixelsException()
+            } else if (numberOfPixels <= 0) {
+                val clampedNumberOfPixels = min(unusedPixels.size, 10000)
+                for (i in 0 until clampedNumberOfPixels) {
+                    pixels += unusedPixels.removeAt(unusedPixels.size - 1)
                 }
-
-                if (pixel != null) {
-                    pixels.add(pixel)
-                } else {
-                    if (numberOfPixels <= 0) {
-                        break
-                    } else {
-                        throw NotEnoughUnusedPixelsException()
-                    }
+            } else {
+                for (i in 0 until numberOfPixels) {
+                    pixels += unusedPixels.removeAt(unusedPixels.size - 1)
                 }
-
-                i++
             }
 
             for (pixel in pixels) {
@@ -408,8 +390,6 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
          * @return the maximum number of usable pixels.
          */
         fun getMaximumNumberOfUsablePixels(context: Context): Int {
-            val random = Random(seed = 42)
-
             val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
             val cameraId = getBestCameraId(cameraManager)
             val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
@@ -417,37 +397,16 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             val imageFormat = if (rawCaptureSupported) ImageFormat.RAW_SENSOR else ImageFormat.YUV_420_888
             val imageSize = cameraCharacteristics[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]!!.getOutputSizes(imageFormat).maxBy { it.width * it.height }!!
 
-            val pixels = mutableListOf<Pair<Int, Int>>()
+            var usablePixels = 0
 
-            val minDistance = if (minimumDistanceBetweenPixels == 1 && rawCaptureSupported) 2 else minimumDistanceBetweenPixels
-
-            var i = 0
-            while (true) {
-                var pixel: Pair<Int, Int>? = null
-
-                for (j in 0 until maximumPixelFindingAttempts) {
-                    pixel = Pair(
-                        random.nextInt(1, (imageSize.width - 1) / minDistance) * minDistance,
-                        random.nextInt(1, (imageSize.height - 1) / minDistance) * minDistance
-                    )
-
-                    if (pixels.contains(pixel)) {
-                        pixel = null
-                    } else {
-                        break
-                    }
+            val stepSize = if (minimumDistanceBetweenPixels == 1 && rawCaptureSupported) 2 else minimumDistanceBetweenPixels
+            for (y in 100 until imageSize.height - 100 step stepSize) {
+                for (x in 100 until imageSize.width - 100 step stepSize) {
+                    usablePixels++
                 }
-
-                if (pixel != null) {
-                    pixels.add(pixel)
-                } else {
-                    break
-                }
-
-                i++
             }
 
-            return pixels.size
+            return usablePixels
         }
 
         /**
@@ -487,9 +446,9 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
             cameraCaptureSession = null
             captureCallback = null
             instances.clear()
+            unusedPixels.clear()
             pixelsValues.clear()
             lastTimeExposureAdjusted = -1L
-            random = Random(seed = 42)
         }
 
         private fun getBestCameraId(cameraManager: CameraManager): String {
