@@ -15,13 +15,13 @@ quantum noise is the noise that dominates the lighter parts of an image. It is c
 variance of the number of photons detected by the photodiodes on the camera sensor per unit of time.
 It can be used as the source of randomness by having a setup as shown in the following illustration.
 
-![shot noise setup](https://i.imgur.com/opcw6iS.png)
+![shot noise setup](https://i.imgur.com/9JEuNEC.png)
 
 Thermal noise or Johnson-Nyquist noise is the noise that dominates the black parts of an image. It
 is caused by the thermal agitation of the electrons in the camera sensor. It can be used as the
 source of randomness by blocking the camera lens as shown in the following illustration.
 
-![thermal noise setup](https://i.imgur.com/dX9w4Zb.png)
+![thermal noise setup](https://i.imgur.com/4xVSRR9.png)
 
 `ImageBasedCamRng` generates random numbers by continuously taking images and applying SHA-512 to
 them. Unlike `NoiseBasedCamRng` that needs additional setup to work, `ImageBasedCamRng` can generate
