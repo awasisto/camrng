@@ -118,6 +118,8 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
 
         private var colorFilterArrangement: Int? = null
 
+        private var whiteLevel: Double? = null
+
         private var exposureTimeRange: Range<Long>? = null
 
         private var isoSensitivityRange: Range<Int>? = null
@@ -172,6 +174,12 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                     rawCaptureSupported = cameraCharacteristics!![CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES]!!.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW)
 
                     colorFilterArrangement = cameraCharacteristics!![CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT]
+
+                    whiteLevel = cameraCharacteristics!![CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL]?.toDouble()
+
+                    if (colorFilterArrangement == null || whiteLevel == null) {
+                        rawCaptureSupported = false
+                    }
 
                     val imageFormat = if (rawCaptureSupported!!) ImageFormat.RAW_SENSOR else ImageFormat.YUV_420_888
 
@@ -501,13 +509,13 @@ class NoiseBasedCamRng private constructor(val pixels: List<Pair<Int, Int>>) : C
                 lastTimeExposureAdjusted = System.currentTimeMillis()
             } else if (System.currentTimeMillis() - lastTimeExposureAdjusted > 1000) {
                 for (pixel in pixelsValues.keys) {
-                    pixelsValues[pixel]!! += getNearestGreenPixelValue(bayerPatternShortBuffer, rowStridePx, pixel.first, pixel.second) / 1023.0
+                    pixelsValues[pixel]!! += getNearestGreenPixelValue(bayerPatternShortBuffer, rowStridePx, pixel.first, pixel.second) / whiteLevel!!
                 }
 
                 val aePixelsValues = mutableListOf<Double>()
 
                 for (pixel in aePixels) {
-                    aePixelsValues += getNearestGreenPixelValue(bayerPatternShortBuffer, rowStridePx, pixel.first, pixel.second) / 1023.0
+                    aePixelsValues += getNearestGreenPixelValue(bayerPatternShortBuffer, rowStridePx, pixel.first, pixel.second) / whiteLevel!!
                 }
 
                 val exposureAdjusted = adjustExposureIfNecessary(aePixelsValues.average())
